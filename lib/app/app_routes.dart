@@ -13,6 +13,7 @@ import 'package:solar_erp_app/features/inventory/presentation/screens/warehouses
 import 'package:solar_erp_app/features/invoices/presentation/screens/invoice_approvals_screen.dart';
 import 'package:solar_erp_app/features/invoices/presentation/screens/invoice_create_screen.dart';
 import 'package:solar_erp_app/features/invoices/presentation/screens/invoice_detail_screen.dart';
+import 'package:solar_erp_app/features/invoices/presentation/screens/invoice_direct_form_screen.dart';
 import 'package:solar_erp_app/features/invoices/presentation/screens/invoice_form_screen.dart';
 import 'package:solar_erp_app/features/invoices/presentation/screens/invoices_screen.dart';
 import 'package:solar_erp_app/features/items/presentation/screens/item_approvals_screen.dart';
@@ -23,6 +24,7 @@ import 'package:solar_erp_app/features/quotations/presentation/screens/quotation
 import 'package:solar_erp_app/features/quotations/presentation/screens/quotation_detail_screen.dart';
 import 'package:solar_erp_app/features/quotations/presentation/screens/quotation_form_screen.dart';
 import 'package:solar_erp_app/features/quotations/presentation/screens/quotations_screen.dart';
+import 'package:solar_erp_app/features/reports/presentation/screens/reports_screen.dart';
 import 'package:solar_erp_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:solar_erp_app/features/shell/presentation/screens/app_shell.dart';
 
@@ -72,6 +74,7 @@ class AppRoutes {
           }
           return InvoiceCreateScreen(quotationId: quotationId);
         },
+        '/invoices/new': (_) => const InvoiceDirectFormScreen(),
         '/invoices/form': (context) {
           final id = ModalRoute.of(context)!.settings.arguments as String;
           return InvoiceFormScreen(invoiceId: id);
@@ -81,6 +84,7 @@ class AppRoutes {
           return InvoiceDetailScreen(invoiceId: id);
         },
         '/invoices/approvals': (_) => const InvoiceApprovalsScreen(),
+        '/reports': (_) => const ReportsScreen(),
         '/inventory': (_) => const InventoryHubScreen(),
         '/inventory/stock': (_) => const StockScreen(),
         '/inventory/ledger': (_) => const StockLedgerScreen(),

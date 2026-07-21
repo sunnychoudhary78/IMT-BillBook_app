@@ -99,6 +99,10 @@ class LedgerListState {
   final bool hasMore;
   final String? error;
   final int page;
+  final String? warehouseId;
+  final String? itemId;
+  final String? transType;
+  final String? invoiceNumber;
 
   const LedgerListState({
     this.items = const [],
@@ -107,6 +111,10 @@ class LedgerListState {
     this.hasMore = true,
     this.error,
     this.page = 0,
+    this.warehouseId,
+    this.itemId,
+    this.transType,
+    this.invoiceNumber,
   });
 
   LedgerListState copyWith({
@@ -116,7 +124,15 @@ class LedgerListState {
     bool? hasMore,
     String? error,
     int? page,
+    String? warehouseId,
+    String? itemId,
+    String? transType,
+    String? invoiceNumber,
     bool clearError = false,
+    bool clearWarehouse = false,
+    bool clearItem = false,
+    bool clearTransType = false,
+    bool clearInvoiceNumber = false,
   }) {
     return LedgerListState(
       items: items ?? this.items,
@@ -125,6 +141,13 @@ class LedgerListState {
       hasMore: hasMore ?? this.hasMore,
       error: clearError ? null : (error ?? this.error),
       page: page ?? this.page,
+      warehouseId:
+          clearWarehouse ? null : (warehouseId ?? this.warehouseId),
+      itemId: clearItem ? null : (itemId ?? this.itemId),
+      transType: clearTransType ? null : (transType ?? this.transType),
+      invoiceNumber: clearInvoiceNumber
+          ? null
+          : (invoiceNumber ?? this.invoiceNumber),
     );
   }
 }
@@ -139,8 +162,13 @@ class LedgerListNotifier extends Notifier<LedgerListState> {
   Future<void> refresh() async {
     state = state.copyWith(isLoading: true, clearError: true, page: 0);
     try {
-      final result =
-          await ref.read(inventoryRepositoryProvider).getLedger(page: 1);
+      final result = await ref.read(inventoryRepositoryProvider).getLedger(
+            page: 1,
+            warehouseId: state.warehouseId,
+            itemId: state.itemId,
+            transType: state.transType,
+            invoiceNumber: state.invoiceNumber,
+          );
       state = state.copyWith(
         items: result.data,
         isLoading: false,
@@ -153,13 +181,46 @@ class LedgerListNotifier extends Notifier<LedgerListState> {
     }
   }
 
+  void setWarehouse(String? id) {
+    state = state.copyWith(
+      warehouseId: id,
+      clearWarehouse: id == null,
+    );
+    refresh();
+  }
+
+  void setItem(String? id) {
+    state = state.copyWith(itemId: id, clearItem: id == null);
+    refresh();
+  }
+
+  void setTransType(String? type) {
+    state = state.copyWith(transType: type, clearTransType: type == null);
+    refresh();
+  }
+
+  void setInvoiceNumber(String? value) {
+    final trimmed = value?.trim();
+    state = state.copyWith(
+      invoiceNumber: trimmed?.isEmpty == true ? null : trimmed,
+      clearInvoiceNumber: trimmed == null || (trimmed.isEmpty),
+    );
+    refresh();
+  }
+
   Future<void> loadMore() async {
     if (state.isLoadingMore || !state.hasMore || state.isLoading) return;
     state = state.copyWith(isLoadingMore: true);
     try {
       final result = await ref
           .read(inventoryRepositoryProvider)
-          .getLedger(page: state.page + 1);
+          .getLedger(
+            page: state.page + 1,
+            warehouseId: state.warehouseId,
+            itemId: state.itemId,
+            transType: state.transType,
+            invoiceNumber: state.invoiceNumber,
+          );
       state = state.copyWith(
         items: [...state.items, ...result.data],
         isLoadingMore: false,

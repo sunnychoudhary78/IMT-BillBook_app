@@ -137,6 +137,17 @@ class AppDrawer extends ConsumerWidget {
                     ...approvalItems,
                   ],
                   const _SectionLabel('App'),
+                  if (auth.hasPermission('report.read'))
+                    _DrawerTile(
+                      index: index++,
+                      icon: Icons.analytics_outlined,
+                      title: 'Reports',
+                      isActive: route == '/reports',
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, '/reports');
+                      },
+                    ),
                   _DrawerTile(
                     index: index++,
                     icon: Icons.settings_outlined,

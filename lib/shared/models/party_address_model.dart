@@ -8,6 +8,7 @@ class PartyAddressModel {
   final String state;
   final String pincode;
   final String gstNumber;
+  final String aadharNumber;
   final String phone;
   final String email;
 
@@ -18,6 +19,7 @@ class PartyAddressModel {
     this.state = '',
     this.pincode = '',
     this.gstNumber = '',
+    this.aadharNumber = '',
     this.phone = '',
     this.email = '',
   });
@@ -33,6 +35,7 @@ class PartyAddressModel {
       state: customer.state ?? '',
       pincode: customer.pincode ?? '',
       gstNumber: customer.gstNumber ?? '',
+      aadharNumber: customer.aadharNumber ?? '',
       phone: customer.phone ?? '',
       email: customer.email ?? '',
     );
@@ -47,6 +50,7 @@ class PartyAddressModel {
       state: json['state']?.toString() ?? '',
       pincode: json['pincode']?.toString() ?? '',
       gstNumber: json['gst_number']?.toString() ?? '',
+      aadharNumber: json['aadhar_number']?.toString() ?? '',
       phone: json['phone']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
     );
@@ -59,6 +63,7 @@ class PartyAddressModel {
         'state': state,
         'pincode': pincode,
         'gst_number': gstNumber,
+        'aadhar_number': aadharNumber,
         'phone': phone,
         'email': email,
       };
@@ -70,6 +75,7 @@ class PartyAddressModel {
     String? state,
     String? pincode,
     String? gstNumber,
+    String? aadharNumber,
     String? phone,
     String? email,
   }) {
@@ -80,6 +86,7 @@ class PartyAddressModel {
       state: state ?? this.state,
       pincode: pincode ?? this.pincode,
       gstNumber: gstNumber ?? this.gstNumber,
+      aadharNumber: aadharNumber ?? this.aadharNumber,
       phone: phone ?? this.phone,
       email: email ?? this.email,
     );

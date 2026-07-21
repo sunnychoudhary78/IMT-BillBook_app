@@ -12,6 +12,7 @@ import 'package:solar_erp_app/shared/utils/validators.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/dialogs.dart';
+import 'package:solar_erp_app/shared/widgets/document_totals_summary.dart';
 
 import '../../data/models/invoice_model.dart';
 import '../providers/invoice_providers.dart';
@@ -101,7 +102,11 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   'Rejection: ${inv.rejectionReason}',
                   style: const TextStyle(color: Colors.red),
                 ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              _InfoRow('Payment mode', inv.paymentMode ?? '—'),
+              _InfoRow('Motor vehicle', inv.motorVehicleNo ?? '—'),
+              _InfoRow('E-way bill', inv.ewayBillNo ?? '—'),
+              const SizedBox(height: 8),
               ...inv.items.map(
                 (line) => Card(
                   child: ListTile(
@@ -114,9 +119,11 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              _AmountRow('Subtotal', formatInr(inv.subtotal)),
-              _AmountRow('GST', formatInr(inv.gstAmount)),
-              _AmountRow('Total', formatInr(inv.totalAmount), bold: true),
+              DocumentTotalsDisplay(
+                subtotal: inv.subtotal,
+                gstAmount: inv.gstAmount,
+                totalAmount: inv.totalAmount,
+              ),
               const SizedBox(height: 24),
               if (canCreate && canSubmit)
                 FilledButton(
@@ -398,27 +405,29 @@ class InvoiceDetailScreen extends ConsumerWidget {
   }
 }
 
-class _AmountRow extends StatelessWidget {
+class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
-  final bool bold;
 
-  const _AmountRow(this.label, this.value, {this.bold = false});
+  const _InfoRow(this.label, this.value);
 
   @override
   Widget build(BuildContext context) {
-    final style = bold
-        ? const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
-        : null;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Text(label, style: style),
-          const Spacer(),
-          Text(value, style: style),
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );
   }
 }
+

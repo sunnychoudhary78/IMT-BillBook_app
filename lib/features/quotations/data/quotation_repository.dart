@@ -34,6 +34,7 @@ class QuotationRepository {
     required String customerId,
     required List<QuotationItemModel> items,
     String? notes,
+    String? quotationNumber,
     DateTime? validUntil,
     PartyAddressModel? billTo,
     PartyAddressModel? shipTo,
@@ -45,6 +46,8 @@ class QuotationRepository {
       'customerId': customerId,
       'items': items.map((e) => e.toCreateJson()).toList(),
       if (notes != null) 'notes': notes,
+      if (quotationNumber != null && quotationNumber.trim().isNotEmpty)
+        'quotation_number': quotationNumber.trim(),
       if (validUntil != null)
         'validUntil': validUntil.toIso8601String().split('T').first,
       if (billTo != null) 'billTo': billTo.toJson(),
@@ -59,6 +62,7 @@ class QuotationRepository {
     required String customerId,
     required List<QuotationItemModel> items,
     String? notes,
+    String? quotationNumber,
     DateTime? validUntil,
     PartyAddressModel? billTo,
     PartyAddressModel? shipTo,
@@ -70,6 +74,8 @@ class QuotationRepository {
       'customerId': customerId,
       'items': items.map((e) => e.toCreateJson()).toList(),
       if (notes != null) 'notes': notes,
+      if (quotationNumber != null && quotationNumber.trim().isNotEmpty)
+        'quotation_number': quotationNumber.trim(),
       if (validUntil != null)
         'validUntil': validUntil.toIso8601String().split('T').first,
       if (billTo != null) 'billTo': billTo.toJson(),

@@ -24,6 +24,7 @@ class InventoryRepository {
     String? itemId,
     String? warehouseId,
     String? transType,
+    String? invoiceNumber,
     int page = 1,
     int limit = 50,
   }) =>
@@ -31,6 +32,7 @@ class InventoryRepository {
         itemId: itemId,
         warehouseId: warehouseId,
         transType: transType,
+        invoiceNumber: invoiceNumber,
         page: page,
         limit: limit,
       );

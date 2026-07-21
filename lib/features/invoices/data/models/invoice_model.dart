@@ -71,6 +71,9 @@ class InvoiceModel {
   final String? rejectionReason;
   final String? warehouseId;
   final bool stockDeducted;
+  final String? paymentMode;
+  final String? motorVehicleNo;
+  final String? ewayBillNo;
   final List<InvoiceItemModel> items;
   final PartyAddressModel? billTo;
   final PartyAddressModel? shipTo;
@@ -91,6 +94,9 @@ class InvoiceModel {
     this.rejectionReason,
     this.warehouseId,
     this.stockDeducted = false,
+    this.paymentMode,
+    this.motorVehicleNo,
+    this.ewayBillNo,
     this.items = const [],
     this.billTo,
     this.shipTo,
@@ -123,6 +129,9 @@ class InvoiceModel {
       rejectionReason: json['rejection_reason']?.toString(),
       warehouseId: json['warehouse_id']?.toString(),
       stockDeducted: asBool(json['stock_deducted']),
+      paymentMode: json['payment_mode']?.toString(),
+      motorVehicleNo: json['motor_vehicle_no']?.toString(),
+      ewayBillNo: json['eway_bill_no']?.toString(),
       items: itemsRaw is List
           ? itemsRaw
               .whereType<Map>()

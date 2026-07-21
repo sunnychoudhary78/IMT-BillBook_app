@@ -154,7 +154,11 @@ void main() {
 
     test('create from quotation posts quotationId', () async {
       pair.adapter.on('POST', 'from-quotation', (req) {
-        expect(req.data, {'quotationId': 'q1', 'notes': 'N1'});
+        expect(req.data, {
+          'quotationId': 'q1',
+          'notes': 'N1',
+          'shipSameAsBill': true,
+        });
         return {
           'id': 'inv1',
           'invoice_number': 'INV-1',

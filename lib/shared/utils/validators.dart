@@ -1,4 +1,8 @@
 class AppValidators {
+  static final _gstinRe = RegExp(
+    r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
+  );
+
   static String? required(String? value, [String field = 'This field']) {
     if (value == null || value.trim().isEmpty) {
       return '$field is required';
@@ -43,28 +47,75 @@ class AppValidators {
     return email(value);
   }
 
+  /// Normalize phone input to digit string (strips +91 / leading 0).
+  static String normalizePhoneDigits(String value) {
+    var digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 12 && digits.startsWith('91')) {
+      digits = digits.substring(2);
+    }
+    if (digits.length == 11 && digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    return digits;
+  }
+
   /// 10-digit Indian mobile starting with 6–9.
   static String? phone(String? value) {
     if (value == null || value.trim().isEmpty) return 'Phone is required';
-    final digits = value.replaceAll(RegExp(r'\D'), '');
+    final digits = normalizePhoneDigits(value);
     if (!RegExp(r'^[6-9]\d{9}$').hasMatch(digits)) {
       return 'Enter a valid 10-digit mobile number';
     }
     return null;
   }
 
+  /// Optional phone: blank ok; Indian 10-digit or 10–15 digit international.
   static String? optionalPhone(String? value) {
     if (value == null || value.trim().isEmpty) return null;
-    return phone(value);
+    final digits = normalizePhoneDigits(value);
+    if (RegExp(r'^[6-9]\d{9}$').hasMatch(digits)) return null;
+    if (digits.length >= 10 && digits.length <= 15) return null;
+    return 'Enter a valid 10-digit phone number';
   }
 
+  /// Optional 12-digit Aadhar number (digits only).
+  static String? aadharNumber(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 12) {
+      return 'Enter a valid 12-digit Aadhar number';
+    }
+    return null;
+  }
+
+  /// GSTIN: allow 1–15 alphanumeric; strict validation at 15 chars.
   static String? gstNumber(String? value) {
     if (value == null || value.trim().isEmpty) return null;
-    final regex = RegExp(
-      r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
-    );
-    if (!regex.hasMatch(value.trim().toUpperCase())) {
-      return 'Enter a valid GST number';
+    final v = value.trim().toUpperCase();
+    if (v.length < 1 || v.length > 15) {
+      return 'GSTIN can be 1 to 15 characters';
+    }
+    if (v.length == 15) {
+      if (!_gstinRe.hasMatch(v)) {
+        return 'Enter a valid 15-character GSTIN';
+      }
+      return null;
+    }
+    if (!RegExp(r'^[0-9A-Z]+$').hasMatch(v)) {
+      return 'GSTIN can be 1 to 15 characters';
+    }
+    return null;
+  }
+
+  /// Returns error message if duplicate item IDs found on a document.
+  static String? duplicateLineItems(Iterable<String?> itemIds) {
+    final seen = <String>{};
+    for (final id in itemIds) {
+      if (id == null || id.isEmpty) continue;
+      if (seen.contains(id)) {
+        return 'Duplicate items on the same document are not allowed';
+      }
+      seen.add(id);
     }
     return null;
   }

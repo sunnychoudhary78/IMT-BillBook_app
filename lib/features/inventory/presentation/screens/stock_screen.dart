@@ -193,6 +193,19 @@ Future<void> _showMoveSheet(
     return;
   }
 
+  final stockLevels = await ref.read(inventoryRepositoryProvider).getStock();
+  if (!context.mounted) return;
+
+  int availableQty(String? iId, String? wId) {
+    if (iId == null || wId == null) return 0;
+    for (final s in stockLevels) {
+      if (s.itemId == iId && s.warehouseId == wId) {
+        return s.currentQuantity;
+      }
+    }
+    return 0;
+  }
+
   final formKey = GlobalKey<FormState>();
   String? itemId = moveItems.first.id;
   String? warehouseId = warehouses.first.id;
@@ -213,136 +226,189 @@ Future<void> _showMoveSheet(
     context: context,
     isScrollControlled: true,
     builder: (context) {
-      return Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
-        ),
-        child: Form(
-          key: formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: itemId,
-                  decoration: const InputDecoration(labelText: 'Item *'),
-                  items: moveItems
-                      .map(
-                        (ItemModel i) => DropdownMenuItem(
-                          value: i.id,
-                          child: Text(
-                            i.status == 'pending'
-                                ? '${i.name} (pending)'
-                                : i.name,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) => itemId = v,
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Select an item' : null,
-                ),
-                const SizedBox(height: 8),
-                if (type == _MoveType.transfer) ...[
-                  DropdownButtonFormField<String>(
-                    value: fromWarehouseId,
-                    decoration: const InputDecoration(labelText: 'From *'),
-                    items: warehouses
-                        .map(
-                          (w) => DropdownMenuItem(
-                            value: w.id,
-                            child: Text(w.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => fromWarehouseId = v,
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Select source warehouse' : null,
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: toWarehouseId,
-                    decoration: const InputDecoration(labelText: 'To *'),
-                    items: warehouses
-                        .map(
-                          (w) => DropdownMenuItem(
-                            value: w.id,
-                            child: Text(w.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => toWarehouseId = v,
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Select destination warehouse' : null,
-                  ),
-                ] else
-                  DropdownButtonFormField<String>(
-                    value: warehouseId,
-                    decoration: const InputDecoration(labelText: 'Warehouse *'),
-                    items: warehouses
-                        .map(
-                          (WarehouseModel w) => DropdownMenuItem(
-                            value: w.id,
-                            child: Text(w.name),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) => warehouseId = v,
-                    validator: (v) =>
-                        v == null || v.isEmpty ? 'Select a warehouse' : null,
-                  ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: qty,
-                  decoration: InputDecoration(
-                    labelText: type == _MoveType.adjustment
-                        ? 'New quantity *'
-                        : 'Quantity *',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(8),
-                  ],
-                  validator: (v) => type == _MoveType.adjustment
-                      ? AppValidators.nonNegativeNumber(v, 'Quantity')
-                      : AppValidators.positiveNumber(v, 'Quantity'),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: notes,
-                  decoration: const InputDecoration(labelText: 'Notes'),
-                  inputFormatters: [LengthLimitingTextInputFormatter(250)],
-                  validator: (v) => AppValidators.maxLength(
-                    v,
-                    max: 250,
-                    field: 'Notes',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: () {
-                    if (!formKey.currentState!.validate()) return;
-                    Navigator.pop(context, true);
-                  },
-                  child: const Text('Submit'),
-                ),
-              ],
+      return StatefulBuilder(
+        builder: (context, setModalState) {
+          final available = type == _MoveType.stockOut
+              ? availableQty(itemId, warehouseId)
+              : 0;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
             ),
-          ),
-        ),
+            child: Form(
+              key: formKey,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: itemId,
+                      decoration: const InputDecoration(labelText: 'Item *'),
+                      items: moveItems
+                          .map(
+                            (ItemModel i) => DropdownMenuItem(
+                              value: i.id,
+                              child: Text(
+                                i.status == 'pending'
+                                    ? '${i.name} (pending)'
+                                    : i.name,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) => setModalState(() => itemId = v),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Select an item' : null,
+                    ),
+                    const SizedBox(height: 8),
+                    if (type == _MoveType.transfer) ...[
+                      DropdownButtonFormField<String>(
+                        value: fromWarehouseId,
+                        decoration:
+                            const InputDecoration(labelText: 'From *'),
+                        items: warehouses
+                            .map(
+                              (w) => DropdownMenuItem(
+                                value: w.id,
+                                child: Text(w.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setModalState(() => fromWarehouseId = v),
+                        validator: (v) => v == null || v.isEmpty
+                            ? 'Select source warehouse'
+                            : null,
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: toWarehouseId,
+                        decoration: const InputDecoration(labelText: 'To *'),
+                        items: warehouses
+                            .map(
+                              (w) => DropdownMenuItem(
+                                value: w.id,
+                                child: Text(w.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setModalState(() => toWarehouseId = v),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) {
+                            return 'Select destination warehouse';
+                          }
+                          if (v == fromWarehouseId) {
+                            return 'Source and destination must differ';
+                          }
+                          return null;
+                        },
+                      ),
+                    ] else
+                      DropdownButtonFormField<String>(
+                        value: warehouseId,
+                        decoration:
+                            const InputDecoration(labelText: 'Warehouse *'),
+                        items: warehouses
+                            .map(
+                              (WarehouseModel w) => DropdownMenuItem(
+                                value: w.id,
+                                child: Text(w.name),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) =>
+                            setModalState(() => warehouseId = v),
+                        validator: (v) => v == null || v.isEmpty
+                            ? 'Select a warehouse'
+                            : null,
+                      ),
+                    if (type == _MoveType.stockOut) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Available: $available',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: qty,
+                      decoration: InputDecoration(
+                        labelText: type == _MoveType.adjustment
+                            ? 'New quantity *'
+                            : 'Quantity *',
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(8),
+                      ],
+                      validator: (v) {
+                        if (type == _MoveType.adjustment) {
+                          return AppValidators.nonNegativeNumber(v, 'Quantity');
+                        }
+                        final base = AppValidators.positiveNumber(v, 'Quantity');
+                        if (base != null) return base;
+                        if (type == _MoveType.stockOut) {
+                          final q = int.tryParse(v?.trim() ?? '') ?? 0;
+                          if (q > available) {
+                            return 'Quantity exceeds available stock ($available)';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: notes,
+                      decoration: const InputDecoration(labelText: 'Notes'),
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(250),
+                      ],
+                      validator: (v) => AppValidators.maxLength(
+                        v,
+                        max: 250,
+                        field: 'Notes',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () {
+                        if (!formKey.currentState!.validate()) return;
+                        if (type == _MoveType.transfer &&
+                            fromWarehouseId == toWarehouseId) {
+                          return;
+                        }
+                        Navigator.pop(context, true);
+                      },
+                      child: const Text('Submit'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       );
     },
   );
 
   if (saved != true) return;
+
+  if (type == _MoveType.transfer && fromWarehouseId == toWarehouseId) {
+    ref.read(globalLoadingProvider.notifier).showError(
+          'Source and destination warehouses must differ',
+        );
+    return;
+  }
 
   final quantity = int.parse(qty.text.trim());
   final note = notes.text.trim().isEmpty ? null : notes.text.trim();

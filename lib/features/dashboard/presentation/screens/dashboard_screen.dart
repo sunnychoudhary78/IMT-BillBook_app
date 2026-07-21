@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:solar_erp_app/shared/constants/role_taglines.dart';
 import 'package:solar_erp_app/shared/utils/formatters.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
@@ -22,7 +23,7 @@ class DashboardScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final scheme = Theme.of(context).colorScheme;
     final firstName = auth.profile?.name.split(' ').first ?? 'there';
-    final subtitle = auth.profile?.roleName ?? 'Sales overview';
+    final subtitle = RoleTaglines.forRole(auth.profile?.roleName);
 
     return Scaffold(
       backgroundColor: scheme.surfaceContainerLowest,
@@ -187,12 +188,26 @@ class DashboardScreen extends ConsumerWidget {
                           onTap: () =>
                               Navigator.pushNamed(context, '/quotations/form'),
                         ),
-                      if (auth.hasPermission('invoice.create'))
+                      if (auth.hasPermission('invoice.create')) ...[
                         _QuickAction(
-                          label: 'New invoice',
+                          label: 'From quotation',
                           icon: Icons.receipt,
                           onTap: () =>
                               Navigator.pushNamed(context, '/invoices/create'),
+                        ),
+                        _QuickAction(
+                          label: 'Direct invoice',
+                          icon: Icons.receipt_long_outlined,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/invoices/new'),
+                        ),
+                      ],
+                      if (auth.hasPermission('report.read'))
+                        _QuickAction(
+                          label: 'Reports',
+                          icon: Icons.analytics_outlined,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/reports'),
                         ),
                       if (auth.hasPermission('item.create'))
                         _QuickAction(

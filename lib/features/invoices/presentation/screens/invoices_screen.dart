@@ -15,6 +15,41 @@ import '../providers/invoice_providers.dart';
 class InvoicesScreen extends ConsumerWidget {
   const InvoicesScreen({super.key});
 
+  static Future<void> _showCreateMenu(BuildContext context, WidgetRef ref) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: const Text('From quotation'),
+              subtitle: const Text('Create from an approved quotation'),
+              onTap: () => Navigator.pop(context, 'quotation'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline),
+              title: const Text('Direct invoice'),
+              subtitle: const Text('Customer + line items, no quotation'),
+              onTap: () => Navigator.pop(context, 'direct'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || choice == null) return;
+    if (choice == 'quotation') {
+      final result = await Navigator.pushNamed(context, '/invoices/create');
+      if (result == true) {
+        ref.read(invoiceListProvider.notifier).refresh();
+      }
+    } else if (choice == 'direct') {
+      await Navigator.pushNamed(context, '/invoices/new');
+      ref.read(invoiceListProvider.notifier).refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(invoiceListProvider);
@@ -38,13 +73,7 @@ class InvoicesScreen extends ConsumerWidget {
       ),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
-              onPressed: () async {
-                final result =
-                    await Navigator.pushNamed(context, '/invoices/create');
-                if (result == true) {
-                  ref.read(invoiceListProvider.notifier).refresh();
-                }
-              },
+              onPressed: () => _showCreateMenu(context, ref),
               icon: const Icon(Icons.add),
               label: const Text('New'),
             )

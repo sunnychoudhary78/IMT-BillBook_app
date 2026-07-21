@@ -11,6 +11,7 @@ import 'package:solar_erp_app/shared/utils/validators.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/dialogs.dart';
+import 'package:solar_erp_app/shared/widgets/document_totals_summary.dart';
 
 import '../providers/quotation_providers.dart';
 
@@ -107,6 +108,9 @@ class QuotationDetailScreen extends ConsumerWidget {
               Text('Valid until: ${formatDate(q.validUntil)}'),
               if (q.notes != null && q.notes!.isNotEmpty)
                 Text('Notes: ${q.notes}'),
+              if (q.customer?.aadharNumber != null &&
+                  q.customer!.aadharNumber!.isNotEmpty)
+                Text('Aadhar: ${q.customer!.aadharNumber}'),
               const SizedBox(height: 16),
               Text('Items', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
@@ -125,9 +129,11 @@ class QuotationDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _AmountRow('Subtotal', formatInr(q.subtotal)),
-              _AmountRow('GST', formatInr(q.gstAmount)),
-              _AmountRow('Total', formatInr(q.totalAmount), bold: true),
+              DocumentTotalsDisplay(
+                subtotal: q.subtotal,
+                gstAmount: q.gstAmount,
+                totalAmount: q.totalAmount,
+              ),
               const SizedBox(height: 24),
               if (canCreate && canSubmit)
                 FilledButton(
@@ -308,27 +314,3 @@ class QuotationDetailScreen extends ConsumerWidget {
   }
 }
 
-class _AmountRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool bold;
-
-  const _AmountRow(this.label, this.value, {this.bold = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final style = bold
-        ? const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
-        : null;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Text(label, style: style),
-          const Spacer(),
-          Text(value, style: style),
-        ],
-      ),
-    );
-  }
-}

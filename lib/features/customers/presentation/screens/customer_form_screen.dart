@@ -32,6 +32,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
   final _state = TextEditingController();
   final _pincode = TextEditingController();
   final _gst = TextEditingController();
+  final _aadhar = TextEditingController();
 
   bool _loading = false;
   bool _initialized = false;
@@ -48,6 +49,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
     _state.dispose();
     _pincode.dispose();
     _gst.dispose();
+    _aadhar.dispose();
     super.dispose();
   }
 
@@ -60,6 +62,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
     _state.text = c.state ?? '';
     _pincode.text = c.pincode ?? '';
     _gst.text = c.gstNumber ?? '';
+    _aadhar.text = c.aadharNumber ?? '';
   }
 
   Future<void> _save() async {
@@ -81,6 +84,9 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
       pincode: _pincode.text.trim().isEmpty ? null : _pincode.text.trim(),
       gstNumber:
           _gst.text.trim().isEmpty ? null : _gst.text.trim().toUpperCase(),
+      aadharNumber: _aadhar.text.trim().isEmpty
+          ? null
+          : _aadhar.text.replaceAll(RegExp(r'\D'), ''),
     );
 
     setState(() => _loading = true);
@@ -271,19 +277,37 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
             const PremiumSectionTitle(title: 'Tax'),
             const SizedBox(height: AppSpacing.sm),
             PremiumCard(
-              child: TextFormField(
-                controller: _gst,
-                decoration: const InputDecoration(
-                  labelText: 'GST Number',
-                  hintText: '15-character GSTIN',
-                ),
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
-                  LengthLimitingTextInputFormatter(15),
-                  _UpperCaseTextFormatter(),
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _gst,
+                    decoration: const InputDecoration(
+                      labelText: 'GST Number',
+                      hintText: '15-character GSTIN',
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                      LengthLimitingTextInputFormatter(15),
+                      _UpperCaseTextFormatter(),
+                    ],
+                    validator: AppValidators.gstNumber,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextFormField(
+                    controller: _aadhar,
+                    decoration: const InputDecoration(
+                      labelText: 'Aadhar Number',
+                      hintText: '12-digit Aadhar',
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(12),
+                    ],
+                    validator: AppValidators.aadharNumber,
+                  ),
                 ],
-                validator: AppValidators.gstNumber,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),

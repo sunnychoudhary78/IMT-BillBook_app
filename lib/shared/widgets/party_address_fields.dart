@@ -1,5 +1,7 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 
+import 'package:solar_erp_app/shared/utils/validators.dart';
 import 'package:solar_erp_app/shared/models/solar_branding_model.dart';
 import 'package:solar_erp_app/shared/models/party_address_model.dart';
 
@@ -28,6 +30,7 @@ class _PartyAddressEditorState extends State<PartyAddressEditor> {
   late final TextEditingController _state;
   late final TextEditingController _pincode;
   late final TextEditingController _gst;
+  late final TextEditingController _aadhar;
   late final TextEditingController _phone;
   late final TextEditingController _email;
 
@@ -40,6 +43,7 @@ class _PartyAddressEditorState extends State<PartyAddressEditor> {
     _state = TextEditingController(text: widget.party.state);
     _pincode = TextEditingController(text: widget.party.pincode);
     _gst = TextEditingController(text: widget.party.gstNumber);
+    _aadhar = TextEditingController(text: widget.party.aadharNumber);
     _phone = TextEditingController(text: widget.party.phone);
     _email = TextEditingController(text: widget.party.email);
   }
@@ -54,6 +58,7 @@ class _PartyAddressEditorState extends State<PartyAddressEditor> {
       _state.text = widget.party.state;
       _pincode.text = widget.party.pincode;
       _gst.text = widget.party.gstNumber;
+      _aadhar.text = widget.party.aadharNumber;
       _phone.text = widget.party.phone;
       _email.text = widget.party.email;
     }
@@ -67,6 +72,7 @@ class _PartyAddressEditorState extends State<PartyAddressEditor> {
     _state.dispose();
     _pincode.dispose();
     _gst.dispose();
+    _aadhar.dispose();
     _phone.dispose();
     _email.dispose();
     super.dispose();
@@ -81,6 +87,7 @@ class _PartyAddressEditorState extends State<PartyAddressEditor> {
         state: _state.text.trim(),
         pincode: _pincode.text.trim(),
         gstNumber: _gst.text.trim(),
+        aadharNumber: _aadhar.text.replaceAll(RegExp(r'\D'), ''),
         phone: _phone.text.trim(),
         email: _email.text.trim(),
       ),
@@ -148,10 +155,25 @@ class _PartyAddressEditorState extends State<PartyAddressEditor> {
                 controller: _gst,
                 enabled: !widget.readOnly,
                 decoration: const InputDecoration(labelText: 'GSTIN'),
+                textCapitalization: TextCapitalization.characters,
                 onChanged: (_) => _emit(),
+                validator: AppValidators.gstNumber,
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _aadhar,
+          enabled: !widget.readOnly,
+          decoration: const InputDecoration(labelText: 'Aadhar No.'),
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(12),
+          ],
+          onChanged: (_) => _emit(),
+          validator: AppValidators.aadharNumber,
         ),
         const SizedBox(height: 8),
         Row(
@@ -163,6 +185,7 @@ class _PartyAddressEditorState extends State<PartyAddressEditor> {
                 decoration: const InputDecoration(labelText: 'Phone'),
                 keyboardType: TextInputType.phone,
                 onChanged: (_) => _emit(),
+                validator: AppValidators.optionalPhone,
               ),
             ),
             const SizedBox(width: 8),
@@ -173,6 +196,7 @@ class _PartyAddressEditorState extends State<PartyAddressEditor> {
                 decoration: const InputDecoration(labelText: 'Email'),
                 keyboardType: TextInputType.emailAddress,
                 onChanged: (_) => _emit(),
+                validator: AppValidators.optionalEmail,
               ),
             ),
           ],

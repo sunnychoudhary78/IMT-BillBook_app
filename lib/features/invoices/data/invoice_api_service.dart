@@ -43,9 +43,17 @@ class InvoiceApiService {
         .toList();
   }
 
+  Future<InvoiceModel> create(Map<String, dynamic> body) async {
+    final res = await _api.post(ApiEndpoints.invoices, body);
+    return InvoiceModel.fromJson(Map<String, dynamic>.from(res as Map));
+  }
+
   Future<InvoiceModel> createFromQuotation({
     required String quotationId,
     String? notes,
+    String? paymentMode,
+    String? motorVehicleNo,
+    String? ewayBillNo,
     PartyAddressModel? billTo,
     PartyAddressModel? shipTo,
     bool shipSameAsBill = true,
@@ -55,6 +63,9 @@ class InvoiceApiService {
     final res = await _api.post(ApiEndpoints.invoiceFromQuotation, {
       'quotationId': quotationId,
       if (notes != null) 'notes': notes,
+      if (paymentMode != null) 'paymentMode': paymentMode,
+      if (motorVehicleNo != null) 'motorVehicleNo': motorVehicleNo,
+      if (ewayBillNo != null) 'ewayBillNo': ewayBillNo,
       if (billTo != null) 'billTo': billTo.toJson(),
       if (resolvedShip != null) 'shipTo': resolvedShip.toJson(),
       'shipSameAsBill': shipSameAsBill,

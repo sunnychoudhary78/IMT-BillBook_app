@@ -25,6 +25,9 @@ class InvoiceRepository {
   Future<InvoiceModel> createFromQuotation({
     required String quotationId,
     String? notes,
+    String? paymentMode,
+    String? motorVehicleNo,
+    String? ewayBillNo,
     PartyAddressModel? billTo,
     PartyAddressModel? shipTo,
     bool shipSameAsBill = true,
@@ -33,16 +36,55 @@ class InvoiceRepository {
       _api.createFromQuotation(
         quotationId: quotationId,
         notes: notes,
+        paymentMode: paymentMode,
+        motorVehicleNo: motorVehicleNo,
+        ewayBillNo: ewayBillNo,
         billTo: billTo,
         shipTo: shipTo,
         shipSameAsBill: shipSameAsBill,
         fromParty: fromParty,
       );
 
+  Future<InvoiceModel> createDirect({
+    required String customerId,
+    required List<InvoiceItemModel> items,
+    String? notes,
+    String? invoiceNumber,
+    String? paymentMode,
+    String? motorVehicleNo,
+    String? ewayBillNo,
+    PartyAddressModel? billTo,
+    PartyAddressModel? shipTo,
+    bool shipSameAsBill = true,
+    Map<String, dynamic>? fromParty,
+  }) {
+    final resolvedShip = shipSameAsBill ? billTo : shipTo;
+    return _api.create({
+      'customerId': customerId,
+      'items': items.map((e) => e.toUpdateJson()).toList(),
+      if (notes != null) 'notes': notes,
+      if (invoiceNumber != null && invoiceNumber.trim().isNotEmpty)
+        'invoiceNumber': invoiceNumber.trim(),
+      if (paymentMode != null && paymentMode.isNotEmpty)
+        'paymentMode': paymentMode,
+      if (motorVehicleNo != null && motorVehicleNo.isNotEmpty)
+        'motorVehicleNo': motorVehicleNo,
+      if (ewayBillNo != null && ewayBillNo.isNotEmpty)
+        'ewayBillNo': ewayBillNo,
+      if (billTo != null) 'billTo': billTo.toJson(),
+      if (resolvedShip != null) 'shipTo': resolvedShip.toJson(),
+      'shipSameAsBill': shipSameAsBill,
+      if (fromParty != null && fromParty.isNotEmpty) 'fromParty': fromParty,
+    });
+  }
+
   Future<InvoiceModel> update({
     required String id,
     required List<InvoiceItemModel> items,
     String? notes,
+    String? paymentMode,
+    String? motorVehicleNo,
+    String? ewayBillNo,
     PartyAddressModel? billTo,
     PartyAddressModel? shipTo,
     bool shipSameAsBill = true,
@@ -52,6 +94,9 @@ class InvoiceRepository {
     return _api.update(id, {
       'items': items.map((e) => e.toUpdateJson()).toList(),
       'notes': notes,
+      if (paymentMode != null) 'paymentMode': paymentMode,
+      if (motorVehicleNo != null) 'motorVehicleNo': motorVehicleNo,
+      if (ewayBillNo != null) 'ewayBillNo': ewayBillNo,
       if (billTo != null) 'billTo': billTo.toJson(),
       if (resolvedShip != null) 'shipTo': resolvedShip.toJson(),
       'shipSameAsBill': shipSameAsBill,

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
-import 'package:solar_erp_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:solar_erp_app/features/customers/data/models/customer_model.dart';
 import 'package:solar_erp_app/features/customers/presentation/providers/customer_providers.dart';
 import 'package:solar_erp_app/features/items/data/models/item_model.dart';
@@ -11,17 +10,16 @@ import 'package:solar_erp_app/features/items/presentation/providers/item_provide
 import 'package:solar_erp_app/shared/constants/item_units.dart';
 import 'package:solar_erp_app/shared/models/party_address_model.dart';
 import 'package:solar_erp_app/shared/providers/branding_providers.dart';
-import 'package:solar_erp_app/shared/utils/document_workflow.dart';
 import 'package:solar_erp_app/shared/utils/formatters.dart';
 import 'package:solar_erp_app/shared/utils/gst_breakdown.dart';
 import 'package:solar_erp_app/shared/utils/validators.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
-import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/document_totals_summary.dart';
+import 'package:solar_erp_app/shared/widgets/invoice_dispatch_fields.dart';
 import 'package:solar_erp_app/shared/widgets/party_address_fields.dart';
 
-import '../../data/models/quotation_model.dart';
-import '../providers/quotation_providers.dart';
+import '../../data/models/invoice_model.dart';
+import '../providers/invoice_providers.dart';
 
 class _LineDraft {
   String? itemId;
@@ -38,70 +36,40 @@ class _LineDraft {
   }
 }
 
-class QuotationFormScreen extends ConsumerStatefulWidget {
-  final String? quotationId;
-
-  const QuotationFormScreen({super.key, this.quotationId});
+class InvoiceDirectFormScreen extends ConsumerStatefulWidget {
+  const InvoiceDirectFormScreen({super.key});
 
   @override
-  ConsumerState<QuotationFormScreen> createState() =>
-      _QuotationFormScreenState();
+  ConsumerState<InvoiceDirectFormScreen> createState() =>
+      _InvoiceDirectFormScreenState();
 }
 
-class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
+class _InvoiceDirectFormScreenState
+    extends ConsumerState<InvoiceDirectFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notes = TextEditingController();
-  final _quotationNumber = TextEditingController();
+  final _invoiceNumber = TextEditingController();
+  final _motorVehicleNo = TextEditingController();
+  final _ewayBillNo = TextEditingController();
   String? _customerId;
-  DateTime? _validUntil;
+  String? _paymentMode;
   final List<_LineDraft> _lines = [_LineDraft()];
-  bool _initialized = false;
   bool _loading = false;
-  String? _status;
-  bool _editBlocked = false;
   PartyAddressModel _billTo = PartyAddressModel.empty();
   PartyAddressModel _shipTo = PartyAddressModel.empty();
   String? _fromBranchId = '';
   bool _shipSameAsBill = true;
 
-  bool get isEdit => widget.quotationId != null;
-
   @override
   void dispose() {
     _notes.dispose();
-    _quotationNumber.dispose();
+    _invoiceNumber.dispose();
+    _motorVehicleNo.dispose();
+    _ewayBillNo.dispose();
     for (final l in _lines) {
       l.dispose();
     }
     super.dispose();
-  }
-
-  void _fill(QuotationModel q) {
-    _status = q.status;
-    _customerId = q.customerId;
-    _quotationNumber.text = q.quotationNumber;
-    _notes.text = q.notes ?? '';
-    _validUntil = q.validUntil;
-    for (final l in _lines) {
-      l.dispose();
-    }
-    _lines
-      ..clear()
-      ..addAll(q.items.map((item) {
-        final line = _LineDraft();
-        line.itemId = item.itemId;
-        line.qty.text = item.quantity.toString();
-        line.price.text = item.unitPrice.toString();
-        line.gst.text = item.gstPercent.toString();
-        line.description.text = item.description ?? '';
-        return line;
-      }));
-    if (_lines.isEmpty) _lines.add(_LineDraft());
-    _billTo = q.billTo ?? PartyAddressModel.fromCustomer(q.customer);
-    _shipTo = q.shipTo ?? _billTo;
-    _fromBranchId = q.fromBranchId ?? '';
-    _shipSameAsBill = _shipTo.name == _billTo.name &&
-        _shipTo.address == _billTo.address;
   }
 
   void _onCustomerChanged(String? id, List<CustomerModel> customers) {
@@ -131,43 +99,10 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     return branding.fromPartyPayload(_fromBranchId);
   }
 
-  bool _assertCanEdit() {
-    if (!isEdit) return true;
-    final auth = ref.read(authProvider);
-    final canEdit = DocumentWorkflow.canEditQuotation(
-      _status ?? '',
-      canCreate: auth.hasPermission('quotation.create'),
-      canApprove: auth.hasPermission('quotation.approve'),
-    );
-    if (!canEdit) {
-      ref.read(globalLoadingProvider.notifier).showError(
-            _status == 'pending_approval'
-                ? 'Only approvers can edit quotations pending approval'
-                : 'This quotation cannot be edited',
-          );
-      return false;
-    }
-    return true;
-  }
-
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _validUntil ?? now.add(const Duration(days: 30)),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365 * 2)),
-    );
-    if (picked != null) setState(() => _validUntil = picked);
-  }
-
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_assertCanEdit()) return;
     if (_customerId == null) {
-      ref
-          .read(globalLoadingProvider.notifier)
-          .showError('Select a customer');
+      ref.read(globalLoadingProvider.notifier).showError('Select a customer');
       return;
     }
     if (_lines.isEmpty) {
@@ -185,7 +120,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
       return;
     }
 
-    final items = <QuotationItemModel>[];
+    final items = <InvoiceItemModel>[];
     for (final line in _lines) {
       if (line.itemId == null) {
         ref
@@ -194,7 +129,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
         return;
       }
       items.add(
-        QuotationItemModel(
+        InvoiceItemModel(
           itemId: line.itemId!,
           quantity: int.parse(line.qty.text.trim()),
           unitPrice: double.parse(line.price.text.trim()),
@@ -207,45 +142,35 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     }
 
     setState(() => _loading = true);
-    ref.read(globalLoadingProvider.notifier).showLoading(
-          isEdit ? 'Updating quotation...' : 'Creating quotation...',
-        );
+    ref.read(globalLoadingProvider.notifier).showLoading('Creating invoice...');
 
     try {
-      final repo = ref.read(quotationRepositoryProvider);
-      final fromParty = _fromPartyPayload();
-      final qNum = _quotationNumber.text.trim();
-      if (isEdit) {
-        await repo.update(
-          id: widget.quotationId!,
-          customerId: _customerId!,
-          items: items,
-          notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
-          quotationNumber: qNum.isEmpty ? null : qNum,
-          validUntil: _validUntil,
-          billTo: _billTo,
-          shipTo: _shipSameAsBill ? _billTo : _shipTo,
-          shipSameAsBill: _shipSameAsBill,
-          fromParty: fromParty,
-        );
-      } else {
-        await repo.create(
-          customerId: _customerId!,
-          items: items,
-          notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
-          quotationNumber: qNum.isEmpty ? null : qNum,
-          validUntil: _validUntil,
-          billTo: _billTo,
-          shipTo: _shipSameAsBill ? _billTo : _shipTo,
-          shipSameAsBill: _shipSameAsBill,
-          fromParty: fromParty,
+      final inv = await ref.read(invoiceRepositoryProvider).createDirect(
+            customerId: _customerId!,
+            items: items,
+            notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+            invoiceNumber: _invoiceNumber.text.trim(),
+            paymentMode: _paymentMode,
+            motorVehicleNo: _motorVehicleNo.text.trim().isEmpty
+                ? null
+                : _motorVehicleNo.text.trim(),
+            ewayBillNo: _ewayBillNo.text.trim().isEmpty
+                ? null
+                : _ewayBillNo.text.trim(),
+            billTo: _billTo,
+            shipTo: _shipSameAsBill ? _billTo : _shipTo,
+            shipSameAsBill: _shipSameAsBill,
+            fromParty: _fromPartyPayload(),
+          );
+      ref.read(globalLoadingProvider.notifier).hide();
+      ref.read(globalLoadingProvider.notifier).showSuccess('Invoice created');
+      if (mounted) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/invoices/detail',
+          arguments: inv.id,
         );
       }
-      ref.read(globalLoadingProvider.notifier).hide();
-      ref.read(globalLoadingProvider.notifier).showSuccess(
-            isEdit ? 'Quotation updated' : 'Quotation created',
-          );
-      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       ref.read(globalLoadingProvider.notifier).hide();
       ref.read(globalLoadingProvider.notifier).showApiError(e);
@@ -254,66 +179,31 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (isEdit && !_initialized) {
-      final async = ref.watch(quotationDetailProvider(widget.quotationId!));
-      return async.when(
-        loading: () => const Scaffold(body: LoadingState()),
-        error: (e, _) => Scaffold(
-          appBar: const AppAppBar(title: 'Edit Quotation'),
-          body: ErrorState(
-            message: cleanError(e),
-            onRetry: () =>
-                ref.invalidate(quotationDetailProvider(widget.quotationId!)),
-          ),
-        ),
-        data: (q) {
-          if (!_initialized) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted || _initialized) return;
-              final auth = ref.read(authProvider);
-              final allowed = DocumentWorkflow.canEditQuotation(
-                q.status,
-                canCreate: auth.hasPermission('quotation.create'),
-                canApprove: auth.hasPermission('quotation.approve'),
-              );
-              if (!allowed) {
-                ref.read(globalLoadingProvider.notifier).showError(
-                      q.status == 'pending_approval'
-                          ? 'Only approvers can edit quotations pending approval'
-                          : 'This quotation cannot be edited',
-                    );
-                setState(() {
-                  _editBlocked = true;
-                  _initialized = true;
-                  _status = q.status;
-                });
-                Navigator.pop(context);
-                return;
-              }
-              _fill(q);
-              setState(() => _initialized = true);
-            });
-          }
-          if (_editBlocked) {
-            return const Scaffold(body: LoadingState());
-          }
-          return _buildForm();
-        },
-      );
-    }
-    return _buildForm();
+  List<LineTotalsInput> _lineTotalsInputs() {
+    return _lines
+        .where((l) => l.itemId != null)
+        .map((l) {
+          final qty = int.tryParse(l.qty.text.trim()) ?? 0;
+          final price = double.tryParse(l.price.text.trim()) ?? 0;
+          final gst = double.tryParse(l.gst.text.trim()) ?? 0;
+          return LineTotalsInput(
+            quantity: qty,
+            unitPrice: price,
+            gstPercent: gst,
+          );
+        })
+        .where((l) => l.quantity > 0)
+        .toList();
   }
 
-  Widget _buildForm() {
+  @override
+  Widget build(BuildContext context) {
     final customersAsync = ref.watch(customerListProvider);
     final itemsAsync = ref.watch(approvedItemsProvider);
     final brandingAsync = ref.watch(solarBrandingProvider);
-    final pendingLock = _status == 'pending_approval';
 
     return Scaffold(
-      appBar: AppAppBar(title: isEdit ? 'Edit Quotation' : 'New Quotation'),
+      appBar: const AppAppBar(title: 'Direct Invoice'),
       body: Form(
         key: _formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -334,12 +224,25 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                       ),
                     )
                     .toList(),
-                onChanged: pendingLock
-                    ? null
-                    : (v) => _onCustomerChanged(v, customersAsync.items),
+                onChanged: (v) =>
+                    _onCustomerChanged(v, customersAsync.items),
                 validator: (v) =>
                     v == null || v.isEmpty ? 'Select a customer' : null,
               ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _invoiceNumber,
+              decoration: const InputDecoration(
+                labelText: 'Invoice number (optional)',
+                hintText: 'Auto-generated if blank',
+              ),
+              inputFormatters: [LengthLimitingTextInputFormatter(50)],
+              validator: (v) => AppValidators.maxLength(
+                v,
+                max: 50,
+                field: 'Invoice number',
+              ),
+            ),
             const SizedBox(height: 12),
             brandingAsync.when(
               loading: () => const LinearProgressIndicator(),
@@ -351,7 +254,6 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                     branchId: _fromBranchId,
                     companyAddress: branding.companyAddress,
                     branches: branding.branchAddresses,
-                    readOnly: pendingLock,
                     onChanged: (v) => setState(() => _fromBranchId = v),
                   ),
                   const SizedBox(height: 16),
@@ -359,7 +261,6 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                     key: ValueKey('bill_${_billTo.name}_${_billTo.address}'),
                     title: 'Bill To',
                     party: _billTo,
-                    readOnly: pendingLock,
                     onChanged: (p) => setState(() {
                       _billTo = p;
                       if (_shipSameAsBill) _shipTo = p;
@@ -370,12 +271,10 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Ship To same as Bill To'),
                     value: _shipSameAsBill,
-                    onChanged: pendingLock
-                        ? null
-                        : (v) => setState(() {
-                              _shipSameAsBill = v ?? true;
-                              if (_shipSameAsBill) _shipTo = _billTo;
-                            }),
+                    onChanged: (v) => setState(() {
+                      _shipSameAsBill = v ?? true;
+                      if (_shipSameAsBill) _shipTo = _billTo;
+                    }),
                   ),
                   if (!_shipSameAsBill)
                     PartyAddressEditor(
@@ -384,39 +283,19 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                       ),
                       title: 'Ship To',
                       party: _shipTo,
-                      readOnly: pendingLock,
                       onChanged: (p) => setState(() => _shipTo = p),
                     ),
                   const SizedBox(height: 16),
                 ],
               ),
             ),
-            TextFormField(
-              controller: _quotationNumber,
-              decoration: const InputDecoration(
-                labelText: 'Quotation number (optional)',
-                hintText: 'Auto-generated if blank',
-              ),
-              enabled: !pendingLock,
-              inputFormatters: [LengthLimitingTextInputFormatter(50)],
-              validator: (v) => AppValidators.maxLength(
-                v,
-                max: 50,
-                field: 'Quotation number',
-              ),
+            InvoiceDispatchFields(
+              paymentMode: _paymentMode,
+              motorVehicleNo: _motorVehicleNo,
+              ewayBillNo: _ewayBillNo,
+              onPaymentModeChanged: (v) => setState(() => _paymentMode = v),
             ),
             const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Valid until'),
-              subtitle: Text(
-                _validUntil == null ? 'Not set' : formatDate(_validUntil),
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.calendar_today),
-                onPressed: pendingLock ? null : _pickDate,
-              ),
-            ),
             TextFormField(
               controller: _notes,
               decoration: const InputDecoration(labelText: 'Notes'),
@@ -459,7 +338,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
             const SizedBox(height: 24),
             FilledButton(
               onPressed: _loading ? null : _save,
-              child: Text(isEdit ? 'Update' : 'Create'),
+              child: const Text('Create invoice'),
             ),
           ],
         ),
@@ -618,22 +497,5 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
         ),
       ),
     );
-  }
-
-  List<LineTotalsInput> _lineTotalsInputs() {
-    return _lines
-        .where((l) => l.itemId != null)
-        .map((l) {
-          final qty = int.tryParse(l.qty.text.trim()) ?? 0;
-          final price = double.tryParse(l.price.text.trim()) ?? 0;
-          final gst = double.tryParse(l.gst.text.trim()) ?? 0;
-          return LineTotalsInput(
-            quantity: qty,
-            unitPrice: price,
-            gstPercent: gst,
-          );
-        })
-        .where((l) => l.quantity > 0)
-        .toList();
   }
 }

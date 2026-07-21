@@ -11,9 +11,12 @@ import 'package:solar_erp_app/shared/models/party_address_model.dart';
 import 'package:solar_erp_app/shared/providers/branding_providers.dart';
 import 'package:solar_erp_app/shared/utils/document_workflow.dart';
 import 'package:solar_erp_app/shared/utils/formatters.dart';
+import 'package:solar_erp_app/shared/utils/gst_breakdown.dart';
 import 'package:solar_erp_app/shared/utils/validators.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
+import 'package:solar_erp_app/shared/widgets/document_totals_summary.dart';
+import 'package:solar_erp_app/shared/widgets/invoice_dispatch_fields.dart';
 import 'package:solar_erp_app/shared/widgets/party_address_fields.dart';
 
 import '../../data/models/invoice_model.dart';
@@ -46,6 +49,8 @@ class InvoiceFormScreen extends ConsumerStatefulWidget {
 class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notes = TextEditingController();
+  final _motorVehicleNo = TextEditingController();
+  final _ewayBillNo = TextEditingController();
   final List<_LineDraft> _lines = [];
   bool _initialized = false;
   bool _loading = false;
@@ -53,6 +58,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   String? _status;
   String? _invoiceNumber;
   String? _customerName;
+  String? _paymentMode;
   bool _stockDeducted = false;
   PartyAddressModel _billTo = PartyAddressModel.empty();
   PartyAddressModel _shipTo = PartyAddressModel.empty();
@@ -62,6 +68,8 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   @override
   void dispose() {
     _notes.dispose();
+    _motorVehicleNo.dispose();
+    _ewayBillNo.dispose();
     for (final l in _lines) {
       l.dispose();
     }
@@ -73,6 +81,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     _invoiceNumber = inv.invoiceNumber;
     _customerName = inv.customerName;
     _stockDeducted = inv.stockDeducted;
+    _paymentMode = inv.paymentMode;
+    _motorVehicleNo.text = inv.motorVehicleNo ?? '';
+    _ewayBillNo.text = inv.ewayBillNo ?? '';
     _notes.text = inv.notes ?? '';
     for (final l in _lines) {
       l.dispose();
@@ -131,6 +142,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       return;
     }
 
+    final dupError = AppValidators.duplicateLineItems(
+      _lines.map((l) => l.itemId),
+    );
+    if (dupError != null) {
+      ref.read(globalLoadingProvider.notifier).showError(dupError);
+      return;
+    }
+
     final items = <InvoiceItemModel>[];
     for (final line in _lines) {
       if (line.itemId == null) {
@@ -160,6 +179,13 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             id: widget.invoiceId,
             items: items,
             notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+            paymentMode: _paymentMode,
+            motorVehicleNo: _motorVehicleNo.text.trim().isEmpty
+                ? null
+                : _motorVehicleNo.text.trim(),
+            ewayBillNo: _ewayBillNo.text.trim().isEmpty
+                ? null
+                : _ewayBillNo.text.trim(),
             billTo: _billTo,
             shipTo: _shipSameAsBill ? _billTo : _shipTo,
             shipSameAsBill: _shipSameAsBill,
@@ -307,6 +333,13 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            InvoiceDispatchFields(
+              paymentMode: _paymentMode,
+              motorVehicleNo: _motorVehicleNo,
+              ewayBillNo: _ewayBillNo,
+              onPaymentModeChanged: (v) => setState(() => _paymentMode = v),
+            ),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Text(
@@ -334,6 +367,8 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            DocumentTotalsSummary(lines: _lineTotalsInputs()),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: _loading ? null : _save,
@@ -468,5 +503,22 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         ),
       ),
     );
+  }
+
+  List<LineTotalsInput> _lineTotalsInputs() {
+    return _lines
+        .where((l) => l.itemId != null)
+        .map((l) {
+          final qty = int.tryParse(l.qty.text.trim()) ?? 0;
+          final price = double.tryParse(l.price.text.trim()) ?? 0;
+          final gst = double.tryParse(l.gst.text.trim()) ?? 0;
+          return LineTotalsInput(
+            quantity: qty,
+            unitPrice: price,
+            gstPercent: gst,
+          );
+        })
+        .where((l) => l.quantity > 0)
+        .toList();
   }
 }

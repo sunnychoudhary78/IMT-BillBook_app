@@ -10,6 +10,7 @@ class CustomerModel {
   final String? state;
   final String? pincode;
   final String? gstNumber;
+  final String? aadharNumber;
 
   const CustomerModel({
     required this.id,
@@ -21,6 +22,7 @@ class CustomerModel {
     this.state,
     this.pincode,
     this.gstNumber,
+    this.aadharNumber,
   });
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,7 @@ class CustomerModel {
       state: json['state']?.toString(),
       pincode: json['pincode']?.toString(),
       gstNumber: json['gst_number']?.toString(),
+      aadharNumber: json['aadhar_number']?.toString(),
     );
   }
 
@@ -47,6 +50,7 @@ class CustomerModel {
       'state': state,
       'pincode': pincode,
       'gst_number': gstNumber,
+      'aadhar_number': aadharNumber,
     };
   }
 

@@ -1,5 +1,5 @@
 /// Business rules aligned with Imt-Billbook web + backend workflows.
-/// Settings / employees are out of scope for the mobile app.
+/// HR admin (employees, roles, company settings) remains web-only.
 class DocumentWorkflow {
   DocumentWorkflow._();
 

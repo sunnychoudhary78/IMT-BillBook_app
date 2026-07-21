@@ -34,15 +34,19 @@ class InventoryApiService {
     String? itemId,
     String? warehouseId,
     String? transType,
+    String? invoiceNumber,
     int page = 1,
     int limit = 50,
   }) async {
     final res = await _api.get(
       ApiEndpoints.ledger,
       queryParams: {
-        if (itemId != null) 'itemId': itemId,
-        if (warehouseId != null) 'warehouseId': warehouseId,
-        if (transType != null) 'transType': transType,
+        if (itemId != null && itemId.isNotEmpty) 'itemId': itemId,
+        if (warehouseId != null && warehouseId.isNotEmpty)
+          'warehouseId': warehouseId,
+        if (transType != null && transType.isNotEmpty) 'transType': transType,
+        if (invoiceNumber != null && invoiceNumber.isNotEmpty)
+          'invoiceNumber': invoiceNumber,
         'page': page,
         'limit': limit,
       },
