@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:solar_erp_app/app/app_root.dart';
 import 'package:solar_erp_app/features/auth/presentation/screens/login_screen.dart'
     show LoginScreen, ChangePasswordScreen;
 import 'package:solar_erp_app/features/customers/presentation/screens/customer_form_screen.dart';
@@ -26,11 +27,9 @@ import 'package:solar_erp_app/features/quotations/presentation/screens/quotation
 import 'package:solar_erp_app/features/quotations/presentation/screens/quotations_screen.dart';
 import 'package:solar_erp_app/features/reports/presentation/screens/reports_screen.dart';
 import 'package:solar_erp_app/features/settings/presentation/screens/settings_screen.dart';
-import 'package:solar_erp_app/features/shell/presentation/screens/app_shell.dart';
-
 class AppRoutes {
   static Map<String, WidgetBuilder> get routes => {
-        '/': (_) => const AppShell(),
+        '/': (_) => const AppRoot(),
         '/login': (_) => const LoginScreen(),
         '/dashboard': (_) => const DashboardScreen(),
         '/settings': (_) => const SettingsScreen(),

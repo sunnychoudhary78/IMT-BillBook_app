@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:solar_erp_app/app/app_root.dart';
 import 'package:solar_erp_app/app/app_routes.dart';
 import 'package:solar_erp_app/app/navigator.dart';
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
@@ -68,7 +67,7 @@ class MyApp extends ConsumerWidget {
       navigatorKey: navigatorKey,
       theme: _buildTheme(primaryColor, Brightness.light),
       darkTheme: _buildTheme(primaryColor, Brightness.dark),
-      home: const AppRoot(),
+      initialRoute: '/',
       routes: AppRoutes.routes,
       builder: (context, child) {
         final overlay = ref.watch(globalLoadingProvider);
