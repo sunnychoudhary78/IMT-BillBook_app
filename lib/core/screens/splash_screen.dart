@@ -59,7 +59,7 @@ class SplashScreen extends StatelessWidget {
                   ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                'Imt-Billbook',
+                'IMT-BillBook',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,

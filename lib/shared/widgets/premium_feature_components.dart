@@ -45,13 +45,7 @@ class PremiumFeatureHeader extends StatelessWidget {
           ],
         ),
         border: Border.all(color: scheme.outlineVariant.withValues(alpha: .55)),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.primary.withValues(alpha: .08),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        boxShadow: AppShadows.header(scheme),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,32 +95,53 @@ class PremiumCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(14),
     this.margin,
+    this.onTap,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return Container(
+    final content = Container(
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: scheme.outlineVariant.withValues(alpha: .75)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .035),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: AppShadows.card(scheme),
       ),
       child: child,
+    );
+
+    if (onTap == null) return content;
+
+    return Padding(
+      padding: margin ?? EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: .75),
+              ),
+              boxShadow: AppShadows.card(scheme),
+            ),
+            child: child,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -245,6 +260,13 @@ class PremiumStatusPill extends StatelessWidget {
   final String label;
   final Color color;
   final IconData? icon;
+
+  factory PremiumStatusPill.forStatus(BuildContext context, String status) {
+    return PremiumStatusPill(
+      label: AppStatusColors.labelFor(status),
+      color: AppStatusColors.forStatus(context, status),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

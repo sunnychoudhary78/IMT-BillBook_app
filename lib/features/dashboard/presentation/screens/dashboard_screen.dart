@@ -10,6 +10,7 @@ import 'package:solar_erp_app/shared/utils/formatters.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
+import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
 
 import '../../data/models/dashboard_model.dart';
 import '../providers/dashboard_providers.dart';
@@ -58,7 +59,7 @@ class DashboardScreen extends ConsumerWidget {
                     AppSpacing.md,
                     AppSpacing.md,
                   ),
-                ),
+                ).appFadeSlide(index: 0),
                 if (auth.hasPermission('stats.read')) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -73,26 +74,26 @@ class DashboardScreen extends ConsumerWidget {
                           value: formatInr(data.totalSales),
                           icon: Icons.currency_rupee,
                           color: scheme.primary,
-                        ),
+                        ).appFadeSlide(index: 1),
                         _KpiCard(
                           label: 'Customers',
                           value: '${data.customersCount}',
                           icon: Icons.people_outline,
                           color: scheme.secondary,
-                        ),
+                        ).appFadeSlide(index: 2),
                         _KpiCard(
                           label: 'Quotations',
                           value: '${data.quotationsCount}',
                           icon: Icons.request_quote_outlined,
                           color: scheme.tertiary,
-                        ),
+                        ).appFadeSlide(index: 3),
                         _KpiCard(
                           label: 'Invoices',
                           value: '${data.invoicesCount}',
                           icon: Icons.receipt_long_outlined,
                           color: scheme.primaryContainer,
                           iconColor: scheme.onPrimaryContainer,
-                        ),
+                        ).appFadeSlide(index: 4),
                         _KpiCard(
                           label: 'Pending approvals',
                           value:
@@ -100,21 +101,21 @@ class DashboardScreen extends ConsumerWidget {
                           icon: Icons.pending_actions,
                           color: scheme.tertiaryContainer,
                           iconColor: scheme.onTertiaryContainer,
-                        ),
+                        ).appFadeSlide(index: 5),
                         _KpiCard(
                           label: 'Low stock',
                           value: '${data.lowStockCount}',
                           icon: Icons.warning_amber_outlined,
                           color: scheme.error,
-                        ),
+                        ).appFadeSlide(index: 6),
                       ],
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    child: PremiumSectionTitle(title: 'Sales trend'),
-                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    child: const PremiumSectionTitle(title: 'Sales trend'),
+                  ).appFadeSlide(index: 7),
                   const SizedBox(height: AppSpacing.sm + 4),
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -158,13 +159,13 @@ class DashboardScreen extends ConsumerWidget {
                             )
                           : _SalesChart(points: data.salesTrend),
                     ),
-                  ),
+                  ).appFadeSlide(index: 7),
                 ],
                 const SizedBox(height: AppSpacing.lg),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  child: PremiumSectionTitle(title: 'Quick actions'),
-                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  child: const PremiumSectionTitle(title: 'Quick actions'),
+                ).appFadeSlide(index: 8),
                 const SizedBox(height: AppSpacing.sm + 4),
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -180,27 +181,27 @@ class DashboardScreen extends ConsumerWidget {
                           icon: Icons.person_add_alt,
                           onTap: () =>
                               Navigator.pushNamed(context, '/customers/form'),
-                        ),
+                        ).appFadeSlide(index: 1),
                       if (auth.hasPermission('quotation.create'))
                         _QuickAction(
                           label: 'New quotation',
                           icon: Icons.note_add_outlined,
                           onTap: () =>
                               Navigator.pushNamed(context, '/quotations/form'),
-                        ),
+                        ).appFadeSlide(index: 2),
                       if (auth.hasPermission('invoice.create')) ...[
                         _QuickAction(
                           label: 'From quotation',
                           icon: Icons.receipt,
                           onTap: () =>
                               Navigator.pushNamed(context, '/invoices/create'),
-                        ),
+                        ).appFadeSlide(index: 3),
                         _QuickAction(
                           label: 'Direct invoice',
                           icon: Icons.receipt_long_outlined,
                           onTap: () =>
                               Navigator.pushNamed(context, '/invoices/new'),
-                        ),
+                        ).appFadeSlide(index: 4),
                       ],
                       if (auth.hasPermission('report.read'))
                         _QuickAction(
@@ -208,28 +209,28 @@ class DashboardScreen extends ConsumerWidget {
                           icon: Icons.analytics_outlined,
                           onTap: () =>
                               Navigator.pushNamed(context, '/reports'),
-                        ),
+                        ).appFadeSlide(index: 5),
                       if (auth.hasPermission('item.create'))
                         _QuickAction(
                           label: 'New item',
                           icon: Icons.add_box_outlined,
                           onTap: () =>
                               Navigator.pushNamed(context, '/items/form'),
-                        ),
+                        ).appFadeSlide(index: 6),
                       if (auth.hasPermission('inventory.read'))
                         _QuickAction(
                           label: 'Inventory',
                           icon: Icons.inventory_2_outlined,
                           onTap: () =>
                               Navigator.pushNamed(context, '/inventory'),
-                        ),
+                        ).appFadeSlide(index: 7),
                       if (auth.hasPermission('item.approve'))
                         _QuickAction(
                           label: 'Item approvals',
                           icon: Icons.fact_check_outlined,
                           onTap: () =>
                               Navigator.pushNamed(context, '/items/approvals'),
-                        ),
+                        ).appFadeSlide(index: 8),
                       if (auth.hasPermission('quotation.approve'))
                         _QuickAction(
                           label: 'Quotation approvals',
@@ -238,7 +239,7 @@ class DashboardScreen extends ConsumerWidget {
                             context,
                             '/quotations/approvals',
                           ),
-                        ),
+                        ).appFadeSlide(index: 8),
                       if (auth.hasPermission('invoice.approve'))
                         _QuickAction(
                           label: 'Invoice approvals',
@@ -247,7 +248,7 @@ class DashboardScreen extends ConsumerWidget {
                             context,
                             '/invoices/approvals',
                           ),
-                        ),
+                        ).appFadeSlide(index: 8),
                     ],
                   ),
                 ),

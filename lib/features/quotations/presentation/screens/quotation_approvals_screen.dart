@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
-import 'package:solar_erp_app/core/widgets/status_badge.dart';
+import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/shared/utils/formatters.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/dialogs.dart';
+import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
+import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
 
 import '../providers/quotation_providers.dart';
 
@@ -16,8 +18,10 @@ class QuotationApprovalsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(pendingQuotationsProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surfaceContainerLowest,
       appBar: const AppAppBar(title: 'Quotation Approvals'),
       body: async.when(
         loading: () => const LoadingState(),
@@ -31,11 +35,13 @@ class QuotationApprovalsScreen extends ConsumerWidget {
               onRefresh: () async =>
                   ref.invalidate(pendingQuotationsProvider),
               child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
-                  SizedBox(height: 120),
-                  EmptyState(
-                    title: 'No pending quotations',
+                  SizedBox(height: 80),
+                  PremiumEmptyState(
                     icon: Icons.verified_outlined,
+                    title: 'No pending quotations',
+                    subtitle: 'All quotations have been reviewed',
                   ),
                 ],
               ),
@@ -44,81 +50,95 @@ class QuotationApprovalsScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(pendingQuotationsProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
+            child: ListView.builder(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.sm,
+                bottom: AppSpacing.lg,
+              ),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final q = items[index];
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                q.quotationNumber,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                            StatusBadge.forStatus(q.status),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text('${q.customerName} · ${formatInr(q.totalAmount)}'),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton(
-                                onPressed: () => _approve(context, ref, q.id),
-                                child: const Text('Approve'),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _reject(context, ref, q.id),
-                                child: const Text('Reject'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            TextButton(
-                              onPressed: () async {
-                                final result = await Navigator.pushNamed(
-                                  context,
-                                  '/quotations/form',
-                                  arguments: q.id,
-                                );
-                                if (result == true) {
-                                  ref.invalidate(pendingQuotationsProvider);
-                                }
-                              },
-                              child: const Text('Edit'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pushNamed(
-                                context,
-                                '/quotations/detail',
-                                arguments: q.id,
-                              ),
-                              child: const Text('View details'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                return PremiumCard(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs + 2,
                   ),
-                );
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              q.quotationNumber,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          PremiumStatusPill.forStatus(context, q.status),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        q.customerName,
+                        style: TextStyle(color: scheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        formatInr(q.totalAmount),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: scheme.primary,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () => _approve(context, ref, q.id),
+                              child: const Text('Approve'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _reject(context, ref, q.id),
+                              child: const Text('Reject'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () async {
+                              final result = await Navigator.pushNamed(
+                                context,
+                                '/quotations/form',
+                                arguments: q.id,
+                              );
+                              if (result == true) {
+                                ref.invalidate(pendingQuotationsProvider);
+                              }
+                            },
+                            child: const Text('Edit'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pushNamed(
+                              context,
+                              '/quotations/detail',
+                              arguments: q.id,
+                            ),
+                            child: const Text('View details'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ).appFadeSlide(index: index);
               },
             ),
           );

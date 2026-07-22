@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
-import 'package:solar_erp_app/core/widgets/status_badge.dart';
+import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:solar_erp_app/shared/constants/item_categories.dart';
 import 'package:solar_erp_app/shared/constants/item_units.dart';
@@ -10,6 +10,8 @@ import 'package:solar_erp_app/shared/utils/formatters.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/dialogs.dart';
+import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
+import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
 
 import '../providers/item_providers.dart';
 
@@ -22,6 +24,7 @@ class ItemDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(itemDetailProvider(itemId));
     final auth = ref.watch(authProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return async.when(
       loading: () => const Scaffold(body: LoadingState()),
@@ -38,104 +41,133 @@ class ItemDetailScreen extends ConsumerWidget {
         final canApprove =
             auth.hasPermission('item.approve') && item.status == 'pending';
 
+        final meta = <String>[
+          formatInr(item.sellingPrice),
+          'GST ${item.gstPercent}%',
+          ItemUnits.labelFor(item.unit),
+        ];
+
+        final actionButtons = <Widget>[
+          if (canEdit)
+            OutlinedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.pushNamed(
+                  context,
+                  '/items/form',
+                  arguments: item.id,
+                );
+                if (result == true) {
+                  ref.invalidate(itemDetailProvider(itemId));
+                }
+              },
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Edit'),
+            ),
+          if (canApprove) ...[
+            FilledButton(
+              onPressed: () => _approve(context, ref),
+              child: const Text('Approve'),
+            ),
+            OutlinedButton(
+              onPressed: () => _reject(context, ref),
+              child: const Text('Reject'),
+            ),
+          ],
+        ];
+
         return Scaffold(
-          appBar: AppAppBar(
-            title: item.name,
-            actions: [
-              if (canEdit)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () async {
-                    final result = await Navigator.pushNamed(
-                      context,
-                      '/items/form',
-                      arguments: item.id,
-                    );
-                    if (result == true) {
-                      ref.invalidate(itemDetailProvider(itemId));
-                    }
-                  },
-                ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
+          backgroundColor: scheme.surfaceContainerLowest,
+          appBar: const AppAppBar(title: 'Item'),
+          body: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.name,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                  ),
-                  StatusBadge.forStatus(item.status),
-                ],
-              ),
-              if (item.rejectionReason != null &&
-                  item.rejectionReason!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Rejection: ${item.rejectionReason}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ],
-              const SizedBox(height: 16),
-              _InfoRow('SKU', item.sku ?? '—'),
-              _InfoRow('Category', ItemCategories.labelFor(item.category)),
-              _InfoRow('HSN', item.hsnCode ?? '—'),
-              _InfoRow('SAC', item.sacCode ?? '—'),
-              _InfoRow('Unit', ItemUnits.labelFor(item.unit)),
-              _InfoRow('GST', '${item.gstPercent}%'),
-              _InfoRow('Price', formatInr(item.sellingPrice)),
-              _InfoRow('Min stock', '${item.minStockLevel}'),
-              if (item.totalQuantity != null)
-                _InfoRow('Total qty', '${item.totalQuantity}'),
-              if (item.description != null && item.description!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text('Description',
-                    style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 4),
-                Text(item.description!),
-              ],
-              const SizedBox(height: 20),
-              Text('Stock by warehouse',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              if (item.stockLevels.isEmpty)
-                const Text('No stock records yet')
-              else
-                ...item.stockLevels.map(
-                  (s) => Card(
-                    child: ListTile(
-                      title: Text(s.warehouseName ?? s.warehouseId),
-                      trailing: Text(
-                        '${s.currentQuantity}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ),
-              if (canApprove) ...[
-                const SizedBox(height: 24),
-                Row(
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
                   children: [
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () => _approve(context, ref),
-                        child: const Text('Approve'),
+                    DocumentDetailHeader(
+                      title: item.name,
+                      subtitle: item.sku ?? ItemCategories.labelFor(item.category),
+                      status: item.status,
+                      icon: Icons.inventory_2_outlined,
+                      meta: meta,
+                    ),
+                    if (item.rejectionReason != null &&
+                        item.rejectionReason!.isNotEmpty)
+                      PremiumCard(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Text(
+                          'Rejection: ${item.rejectionReason}',
+                          style: TextStyle(color: scheme.error),
+                        ),
+                      ),
+                    const PremiumSectionTitle(title: 'Details'),
+                    PremiumCard(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      child: Column(
+                        children: [
+                          _InfoRow('SKU', item.sku ?? '—'),
+                          _InfoRow(
+                            'Category',
+                            ItemCategories.labelFor(item.category),
+                          ),
+                          _InfoRow('HSN', item.hsnCode ?? '—'),
+                          _InfoRow('SAC', item.sacCode ?? '—'),
+                          _InfoRow('Unit', ItemUnits.labelFor(item.unit)),
+                          _InfoRow('GST', '${item.gstPercent}%'),
+                          _InfoRow('Price', formatInr(item.sellingPrice)),
+                          _InfoRow('Min stock', '${item.minStockLevel}'),
+                          if (item.totalQuantity != null)
+                            _InfoRow('Total qty', '${item.totalQuantity}'),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _reject(context, ref),
-                        child: const Text('Reject'),
+                    if (item.description != null &&
+                        item.description!.isNotEmpty) ...[
+                      const PremiumSectionTitle(title: 'Description'),
+                      PremiumCard(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: Text(item.description!),
                       ),
-                    ),
+                    ],
+                    const PremiumSectionTitle(title: 'Stock by warehouse'),
+                    if (item.stockLevels.isEmpty)
+                      PremiumCard(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: Text(
+                          'No stock records yet',
+                          style: TextStyle(color: scheme.onSurfaceVariant),
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: Column(
+                          children: item.stockLevels
+                              .map(
+                                (s) => LineItemCard(
+                                  name: s.warehouseName ?? s.warehouseId,
+                                  quantity: '${s.currentQuantity}',
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
                   ],
                 ),
-              ],
+              ),
+              if (actionButtons.isNotEmpty)
+                StickyActionBar(children: actionButtons),
             ],
           ),
         );

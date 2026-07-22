@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
-import 'package:solar_erp_app/core/widgets/status_badge.dart';
+import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/features/inventory/data/models/inventory_models.dart';
 import 'package:solar_erp_app/features/inventory/presentation/providers/inventory_providers.dart';
 import 'package:solar_erp_app/shared/utils/formatters.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/dialogs.dart';
+import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
+import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
 
 import '../../data/models/invoice_model.dart';
 import '../providers/invoice_providers.dart';
@@ -26,8 +28,10 @@ class _InvoiceApprovalsScreenState
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(pendingInvoicesProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surfaceContainerLowest,
       appBar: const AppAppBar(title: 'Invoice Approvals'),
       body: async.when(
         loading: () => const LoadingState(),
@@ -40,11 +44,13 @@ class _InvoiceApprovalsScreenState
             return RefreshIndicator(
               onRefresh: () async => ref.invalidate(pendingInvoicesProvider),
               child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
-                  SizedBox(height: 120),
-                  EmptyState(
-                    title: 'No pending invoices',
+                  SizedBox(height: 80),
+                  PremiumEmptyState(
                     icon: Icons.verified_outlined,
+                    title: 'No pending invoices',
+                    subtitle: 'All invoices have been reviewed',
                   ),
                 ],
               ),
@@ -53,81 +59,96 @@ class _InvoiceApprovalsScreenState
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(pendingInvoicesProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
+            child: ListView.builder(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.sm,
+                bottom: AppSpacing.lg,
+              ),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final inv = items[index];
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                inv.invoiceNumber,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                            StatusBadge.forStatus(inv.status),
-                          ],
-                        ),
-                        Text('${inv.customerName} · ${formatInr(inv.totalAmount)}'),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton(
-                                onPressed: () => _approve(inv),
-                                child: const Text('Approve'),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _reject(inv.id),
-                                child: const Text('Reject'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            TextButton(
-                              onPressed: () async {
-                                final result = await Navigator.pushNamed(
-                                  context,
-                                  '/invoices/form',
-                                  arguments: inv.id,
-                                );
-                                if (result == true) {
-                                  ref.invalidate(pendingInvoicesProvider);
-                                  ref.invalidate(invoiceListProvider);
-                                }
-                              },
-                              child: const Text('Edit'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pushNamed(
-                                context,
-                                '/invoices/detail',
-                                arguments: inv.id,
-                              ),
-                              child: const Text('View details'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                return PremiumCard(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs + 2,
                   ),
-                );
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              inv.invoiceNumber,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          PremiumStatusPill.forStatus(context, inv.status),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        inv.customerName,
+                        style: TextStyle(color: scheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        formatInr(inv.totalAmount),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: scheme.primary,
+                            ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () => _approve(inv),
+                              child: const Text('Approve'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _reject(inv.id),
+                              child: const Text('Reject'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () async {
+                              final result = await Navigator.pushNamed(
+                                context,
+                                '/invoices/form',
+                                arguments: inv.id,
+                              );
+                              if (result == true) {
+                                ref.invalidate(pendingInvoicesProvider);
+                                ref.invalidate(invoiceListProvider);
+                              }
+                            },
+                            child: const Text('Edit'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pushNamed(
+                              context,
+                              '/invoices/detail',
+                              arguments: inv.id,
+                            ),
+                            child: const Text('View details'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ).appFadeSlide(index: index);
               },
             ),
           );

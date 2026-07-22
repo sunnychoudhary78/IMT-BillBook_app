@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
-import 'package:solar_erp_app/core/widgets/status_badge.dart';
+import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:solar_erp_app/shared/utils/document_workflow.dart';
 import 'package:solar_erp_app/shared/utils/formatters.dart';
@@ -12,6 +12,8 @@ import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/dialogs.dart';
 import 'package:solar_erp_app/shared/widgets/document_totals_summary.dart';
+import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
+import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
 
 import '../providers/quotation_providers.dart';
 
@@ -24,6 +26,7 @@ class QuotationDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(quotationDetailProvider(quotationId));
     final auth = ref.watch(authProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return async.when(
       loading: () => const Scaffold(body: LoadingState()),
@@ -51,119 +54,151 @@ class QuotationDetailScreen extends ConsumerWidget {
           status: q.status,
           invoiceId: q.invoiceId,
         );
+        final canDownload = DocumentWorkflow.canDownloadQuotation(q.status);
+        final canEmail = DocumentWorkflow.canEmailQuotation(q.status);
+
+        final actionButtons = <Widget>[
+          if (canEdit)
+            OutlinedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.pushNamed(
+                  context,
+                  '/quotations/form',
+                  arguments: q.id,
+                );
+                if (result == true) {
+                  ref.invalidate(quotationDetailProvider(quotationId));
+                }
+              },
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Edit'),
+            ),
+          if (canDownload)
+            OutlinedButton.icon(
+              onPressed: () => _downloadPdf(ref),
+              icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+              label: const Text('PDF'),
+            ),
+          if (canEmail)
+            OutlinedButton.icon(
+              onPressed: () => _sendEmail(context, ref, q.customer?.email),
+              icon: const Icon(Icons.email_outlined, size: 18),
+              label: const Text('Email'),
+            ),
+          if (canCreate && canSubmit)
+            FilledButton(
+              onPressed: () => _submit(context, ref),
+              child: const Text('Submit for approval'),
+            ),
+          if (canApprove && isPending) ...[
+            FilledButton(
+              onPressed: () => _approve(context, ref),
+              child: const Text('Approve'),
+            ),
+            OutlinedButton(
+              onPressed: () => _reject(context, ref),
+              child: const Text('Reject'),
+            ),
+          ],
+          if (canCreateInvoice && auth.hasPermission('invoice.create'))
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pushNamed(
+                context,
+                '/invoices/create',
+                arguments: {'quotationId': q.id},
+              ),
+              icon: const Icon(Icons.receipt_long, size: 18),
+              label: const Text('Create invoice'),
+            ),
+        ];
 
         return Scaffold(
-          appBar: AppAppBar(
-            title: q.quotationNumber,
-            actions: [
-              if (canEdit)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () async {
-                    final result = await Navigator.pushNamed(
-                      context,
-                      '/quotations/form',
-                      arguments: q.id,
-                    );
-                    if (result == true) {
-                      ref.invalidate(quotationDetailProvider(quotationId));
-                    }
-                  },
-                ),
-              if (DocumentWorkflow.canDownloadQuotation(q.status))
-                IconButton(
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  onPressed: () => _downloadPdf(ref),
-                ),
-              if (DocumentWorkflow.canEmailQuotation(q.status))
-                IconButton(
-                  icon: const Icon(Icons.email_outlined),
-                  onPressed: () => _sendEmail(context, ref, q.customer?.email),
-                ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
+          backgroundColor: scheme.surfaceContainerLowest,
+          appBar: const AppAppBar(title: 'Quotation'),
+          body: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      q.customerName,
-                      style: Theme.of(context).textTheme.titleLarge,
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  children: [
+                    DocumentDetailHeader(
+                      title: q.quotationNumber,
+                      subtitle: q.customerName,
+                      status: q.status,
+                      icon: Icons.request_quote_outlined,
+                      meta: [
+                        'Valid until ${formatDate(q.validUntil)}',
+                        formatInr(q.totalAmount),
+                      ],
                     ),
-                  ),
-                  StatusBadge.forStatus(q.status),
-                ],
-              ),
-              if (q.rejectionReason != null &&
-                  q.rejectionReason!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Rejection: ${q.rejectionReason}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Text('Valid until: ${formatDate(q.validUntil)}'),
-              if (q.notes != null && q.notes!.isNotEmpty)
-                Text('Notes: ${q.notes}'),
-              if (q.customer?.aadharNumber != null &&
-                  q.customer!.aadharNumber!.isNotEmpty)
-                Text('Aadhar: ${q.customer!.aadharNumber}'),
-              const SizedBox(height: 16),
-              Text('Items', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              ...q.items.map(
-                (line) => Card(
-                  child: ListTile(
-                    title: Text(line.displayName),
-                    subtitle: Text(
-                      '${line.quantity} × ${formatInr(line.unitPrice)} · GST ${line.gstPercent}%',
+                    if (q.rejectionReason != null &&
+                        q.rejectionReason!.isNotEmpty) ...[
+                      PremiumCard(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Text(
+                          'Rejection: ${q.rejectionReason}',
+                          style: TextStyle(color: scheme.error),
+                        ),
+                      ),
+                    ],
+                    if ((q.notes != null && q.notes!.isNotEmpty) ||
+                        (q.customer?.aadharNumber != null &&
+                            q.customer!.aadharNumber!.isNotEmpty)) ...[
+                      const PremiumSectionTitle(title: 'Details'),
+                      PremiumCard(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (q.notes != null && q.notes!.isNotEmpty)
+                              Text('Notes: ${q.notes}'),
+                            if (q.customer?.aadharNumber != null &&
+                                q.customer!.aadharNumber!.isNotEmpty)
+                              Text('Aadhar: ${q.customer!.aadharNumber}'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const PremiumSectionTitle(title: 'Items'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      child: Column(
+                        children: q.items
+                            .map(
+                              (line) => LineItemCard(
+                                name: line.displayName,
+                                quantity: '${line.quantity}',
+                                rate: formatInr(line.unitPrice),
+                                gstRate: '${line.gstPercent}',
+                                amount: formatInr(line.lineTotal),
+                              ),
+                            )
+                            .toList(),
+                      ),
                     ),
-                    trailing: Text(
-                      formatInr(line.lineTotal),
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    const PremiumSectionTitle(title: 'Totals'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      child: DocumentTotalsDisplay(
+                        subtotal: q.subtotal,
+                        gstAmount: q.gstAmount,
+                        totalAmount: q.totalAmount,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              DocumentTotalsDisplay(
-                subtotal: q.subtotal,
-                gstAmount: q.gstAmount,
-                totalAmount: q.totalAmount,
-              ),
-              const SizedBox(height: 24),
-              if (canCreate && canSubmit)
-                FilledButton(
-                  onPressed: () => _submit(context, ref),
-                  child: const Text('Submit for approval'),
-                ),
-              if (canApprove && isPending) ...[
-                FilledButton(
-                  onPressed: () => _approve(context, ref),
-                  child: const Text('Approve'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: () => _reject(context, ref),
-                  child: const Text('Reject'),
-                ),
-              ],
-              if (canCreateInvoice &&
-                  auth.hasPermission('invoice.create')) ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.pushNamed(
-                    context,
-                    '/invoices/create',
-                    arguments: {'quotationId': q.id},
-                  ),
-                  icon: const Icon(Icons.receipt_long),
-                  label: const Text('Create invoice'),
-                ),
-              ],
+              if (actionButtons.isNotEmpty)
+                StickyActionBar(children: actionButtons),
             ],
           ),
         );
@@ -313,4 +348,3 @@ class QuotationDetailScreen extends ConsumerWidget {
     }
   }
 }
-

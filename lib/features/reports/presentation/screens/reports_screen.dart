@@ -50,13 +50,13 @@ class ReportsScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.all(AppSpacing.md),
               children: [
-                // --- 1. Executive Overview Header & Full Width Metrics ---
-                // const PremiumFeatureHeader(
-                //   icon: Icons.analytics_rounded,
-                //   title: 'Executive Overview',
-                //   subtitle: 'Real-time financial performance and inventory health',
-                // ),
-                // const SizedBox(height: AppSpacing.md),
+                const PremiumFeatureHeader(
+                  icon: Icons.analytics_rounded,
+                  title: 'Executive Overview',
+                  subtitle:
+                      'Real-time financial performance and inventory health',
+                ),
+                const SizedBox(height: AppSpacing.md),
 
                 // Full-width KPI Overview Card (Single Clean Container)
                 PremiumCard(

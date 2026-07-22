@@ -51,6 +51,7 @@ class InvoiceApiService {
   Future<InvoiceModel> createFromQuotation({
     required String quotationId,
     String? notes,
+    String? invoiceNumber,
     String? paymentMode,
     String? motorVehicleNo,
     String? ewayBillNo,
@@ -63,6 +64,8 @@ class InvoiceApiService {
     final res = await _api.post(ApiEndpoints.invoiceFromQuotation, {
       'quotationId': quotationId,
       if (notes != null) 'notes': notes,
+      if (invoiceNumber != null && invoiceNumber.trim().isNotEmpty)
+        'invoiceNumber': invoiceNumber.trim(),
       if (paymentMode != null) 'paymentMode': paymentMode,
       if (motorVehicleNo != null) 'motorVehicleNo': motorVehicleNo,
       if (ewayBillNo != null) 'ewayBillNo': ewayBillNo,

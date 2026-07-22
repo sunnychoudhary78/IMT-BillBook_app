@@ -11,6 +11,7 @@ import 'package:solar_erp_app/shared/utils/formatters.dart';
 import 'package:solar_erp_app/shared/utils/validators.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
+import 'package:solar_erp_app/shared/widgets/invoice_dispatch_fields.dart';
 import 'package:solar_erp_app/shared/widgets/party_address_fields.dart';
 
 import '../providers/invoice_providers.dart';
@@ -28,11 +29,15 @@ class InvoiceCreateScreen extends ConsumerStatefulWidget {
 class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   String? _quotationId;
   final _notes = TextEditingController();
+  final _invoiceNumber = TextEditingController();
+  final _motorVehicleNo = TextEditingController();
+  final _ewayBillNo = TextEditingController();
   bool _loading = false;
   PartyAddressModel _billTo = PartyAddressModel.empty();
   PartyAddressModel _shipTo = PartyAddressModel.empty();
   String? _fromBranchId = '';
   bool _shipSameAsBill = true;
+  String? _paymentMode;
   QuotationModel? _preview;
 
   @override
@@ -47,6 +52,9 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
   @override
   void dispose() {
     _notes.dispose();
+    _invoiceNumber.dispose();
+    _motorVehicleNo.dispose();
+    _ewayBillNo.dispose();
     super.dispose();
   }
 
@@ -98,6 +106,16 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
       final inv = await ref.read(invoiceRepositoryProvider).createFromQuotation(
             quotationId: _quotationId!,
             notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+            invoiceNumber: _invoiceNumber.text.trim().isEmpty
+                ? null
+                : _invoiceNumber.text.trim(),
+            paymentMode: _paymentMode,
+            motorVehicleNo: _motorVehicleNo.text.trim().isEmpty
+                ? null
+                : _motorVehicleNo.text.trim(),
+            ewayBillNo: _ewayBillNo.text.trim().isEmpty
+                ? null
+                : _ewayBillNo.text.trim(),
             billTo: _billTo,
             shipTo: _shipSameAsBill ? _billTo : _shipTo,
             shipSameAsBill: _shipSameAsBill,
@@ -260,6 +278,28 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
                         ],
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _invoiceNumber,
+                    decoration: const InputDecoration(
+                      labelText: 'Invoice number (optional)',
+                      hintText: 'Auto-generated if blank',
+                    ),
+                    inputFormatters: [LengthLimitingTextInputFormatter(50)],
+                    validator: (v) => AppValidators.maxLength(
+                      v,
+                      max: 50,
+                      field: 'Invoice number',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  InvoiceDispatchFields(
+                    paymentMode: _paymentMode,
+                    motorVehicleNo: _motorVehicleNo,
+                    ewayBillNo: _ewayBillNo,
+                    onPaymentModeChanged: (v) =>
+                        setState(() => _paymentMode = v),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(

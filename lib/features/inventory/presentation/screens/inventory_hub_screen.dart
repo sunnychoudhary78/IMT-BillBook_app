@@ -20,37 +20,37 @@ class InventoryHubScreen extends ConsumerWidget {
 
     final tiles = <_HubTile>[
       if (canRead)
-        const _HubTile(
+        _HubTile(
           title: 'Current Stock',
           subtitle: 'Real-time warehouse stock',
           icon: Icons.inventory_2_rounded,
           route: '/inventory/stock',
-          accentColor: Color(0xFF0284C7), // Sky Blue
+          accent: _HubAccent.primary,
         ),
       if (canRead)
-        const _HubTile(
+        _HubTile(
           title: 'Stock Ledger',
           subtitle: 'Audit & movement history',
           icon: Icons.history_rounded,
           route: '/inventory/ledger',
-          accentColor: Color(0xFF7C3AED), // Purple Accent
+          accent: _HubAccent.secondary,
         ),
       if (canRead)
-        const _HubTile(
+        _HubTile(
           title: 'Low Stock',
           subtitle: 'Alerts & reorder levels',
           icon: Icons.warning_amber_rounded,
           route: '/inventory/low-stock',
-          accentColor: Color(0xFFEA580C), // Orange Warning
+          accent: _HubAccent.error,
           badgeText: 'Alerts',
         ),
       if (canRead || canCreate || canUpdate)
-        const _HubTile(
+        _HubTile(
           title: 'Warehouses',
           subtitle: 'Locations & sites',
           icon: Icons.warehouse_rounded,
           route: '/inventory/warehouses',
-          accentColor: Color(0xFF059669), // Emerald
+          accent: _HubAccent.tertiary,
         ),
     ];
 
@@ -89,7 +89,10 @@ class InventoryHubScreen extends ConsumerWidget {
                           childAspectRatio: 1.5, // Clean balanced proportion
                         ),
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      return _ModernHubCard(tile: tiles[index]);
+                      return _ModernHubCard(
+                        tile: tiles[index],
+                        scheme: scheme,
+                      );
                     }, childCount: tiles.length),
                   ),
                 ),
@@ -104,13 +107,13 @@ class InventoryHubScreen extends ConsumerWidget {
 
 class _ModernHubCard extends StatelessWidget {
   final _HubTile tile;
+  final ColorScheme scheme;
 
-  const _ModernHubCard({required this.tile});
+  const _ModernHubCard({required this.tile, required this.scheme});
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final primaryColor = tile.accentColor ?? scheme.primary;
+    final primaryColor = _accentFor(scheme, tile.accent);
 
     return Container(
       decoration: BoxDecoration(
@@ -219,12 +222,23 @@ class _ModernHubCard extends StatelessWidget {
   }
 }
 
+enum _HubAccent { primary, secondary, tertiary, error }
+
+Color _accentFor(ColorScheme scheme, _HubAccent accent) {
+  return switch (accent) {
+    _HubAccent.primary => scheme.primary,
+    _HubAccent.secondary => scheme.secondary,
+    _HubAccent.tertiary => scheme.tertiary,
+    _HubAccent.error => scheme.error,
+  };
+}
+
 class _HubTile {
   final String title;
   final String subtitle;
   final IconData icon;
   final String route;
-  final Color? accentColor;
+  final _HubAccent accent;
   final String? badgeText;
 
   const _HubTile({
@@ -232,7 +246,7 @@ class _HubTile {
     required this.subtitle,
     required this.icon,
     required this.route,
-    this.accentColor,
+    required this.accent,
     this.badgeText,
   });
 }

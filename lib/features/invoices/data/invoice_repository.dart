@@ -25,6 +25,7 @@ class InvoiceRepository {
   Future<InvoiceModel> createFromQuotation({
     required String quotationId,
     String? notes,
+    String? invoiceNumber,
     String? paymentMode,
     String? motorVehicleNo,
     String? ewayBillNo,
@@ -36,6 +37,7 @@ class InvoiceRepository {
       _api.createFromQuotation(
         quotationId: quotationId,
         notes: notes,
+        invoiceNumber: invoiceNumber,
         paymentMode: paymentMode,
         motorVehicleNo: motorVehicleNo,
         ewayBillNo: ewayBillNo,
@@ -82,6 +84,7 @@ class InvoiceRepository {
     required String id,
     required List<InvoiceItemModel> items,
     String? notes,
+    String? invoiceNumber,
     String? paymentMode,
     String? motorVehicleNo,
     String? ewayBillNo,
@@ -94,6 +97,8 @@ class InvoiceRepository {
     return _api.update(id, {
       'items': items.map((e) => e.toUpdateJson()).toList(),
       'notes': notes,
+      if (invoiceNumber != null && invoiceNumber.trim().isNotEmpty)
+        'invoiceNumber': invoiceNumber.trim(),
       if (paymentMode != null) 'paymentMode': paymentMode,
       if (motorVehicleNo != null) 'motorVehicleNo': motorVehicleNo,
       if (ewayBillNo != null) 'ewayBillNo': ewayBillNo,

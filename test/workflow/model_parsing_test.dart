@@ -56,6 +56,7 @@ void main() {
         'customer_id': 'c1',
         'status': 'sent',
         'warehouse_id': 'wh-1',
+        'warehouse': {'id': 'wh-1', 'name': 'Main WH'},
         'stock_deducted': true,
         'subtotal': 1000,
         'gst_amount': 180,
@@ -66,6 +67,7 @@ void main() {
       expect(inv.status, 'sent');
       expect(inv.stockDeducted, isTrue);
       expect(inv.warehouseId, 'wh-1');
+      expect(inv.warehouseName, 'Main WH');
       expect(DocumentWorkflow.isInvoiceApproved(inv.status), isTrue);
     });
 

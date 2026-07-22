@@ -79,6 +79,7 @@ class StockTransactionModel {
   final int quantity;
   final int balanceAfter;
   final String? referenceType;
+  final String? referenceId;
   final String? referenceNumber;
   final String? notes;
   final DateTime? createdAt;
@@ -93,6 +94,7 @@ class StockTransactionModel {
     required this.quantity,
     required this.balanceAfter,
     this.referenceType,
+    this.referenceId,
     this.referenceNumber,
     this.notes,
     this.createdAt,
@@ -111,6 +113,7 @@ class StockTransactionModel {
       quantity: asInt(json['quantity']),
       balanceAfter: asInt(json['balance_after']),
       referenceType: json['reference_type']?.toString(),
+      referenceId: json['reference_id']?.toString(),
       referenceNumber: json['reference_number']?.toString(),
       notes: json['notes']?.toString(),
       createdAt: parseDate(json['created_at']),
@@ -125,4 +128,9 @@ class StockTransactionModel {
 
   String get itemName => item?.name ?? itemId;
   String get warehouseName => warehouse?.name ?? warehouseId;
+
+  bool get isInvoiceReference =>
+      referenceType == 'invoice' &&
+      referenceId != null &&
+      referenceId!.isNotEmpty;
 }

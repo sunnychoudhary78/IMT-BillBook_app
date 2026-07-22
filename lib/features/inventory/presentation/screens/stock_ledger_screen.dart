@@ -365,42 +365,94 @@ class _StockLedgerScreenState extends ConsumerState<StockLedgerScreen> {
                                 child: Divider(height: 1),
                               ),
 
-                              // Footer Metadata (Ref / Date)
+                              // Footer Metadata (Type / Ref / Date)
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
                                 children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: config.color.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      tx.transType.toUpperCase(),
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                        color: config.color,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(),
                                   if (tx.referenceNumber != null &&
                                       tx.referenceNumber!.isNotEmpty)
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.receipt_long,
-                                          size: 14,
-                                          color: theme.colorScheme.outline,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          tx.referenceNumber!,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                      ],
+                                    InkWell(
+                                      onTap: tx.isInvoiceReference
+                                          ? () => Navigator.pushNamed(
+                                                context,
+                                                '/invoices/detail',
+                                                arguments: tx.referenceId,
+                                              )
+                                          : null,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.receipt_long,
+                                            size: 14,
+                                            color: tx.isInvoiceReference
+                                                ? theme.colorScheme.primary
+                                                : theme.colorScheme.outline,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            tx.referenceNumber!,
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                              fontWeight: FontWeight.w500,
+                                              color: tx.isInvoiceReference
+                                                  ? theme.colorScheme.primary
+                                                  : null,
+                                              decoration: tx.isInvoiceReference
+                                                  ? TextDecoration.underline
+                                                  : null,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     )
                                   else
-                                    const SizedBox.shrink(),
-                                  if (tx.createdAt != null)
+                                    Text(
+                                      '—',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                        color: theme.colorScheme.outline,
+                                      ),
+                                    ),
+                                  if (tx.createdAt != null) ...[
+                                    const SizedBox(width: 12),
                                     Text(
                                       formatDateTime(tx.createdAt),
                                       style: theme.textTheme.bodySmall
                                           ?.copyWith(
-                                            color: theme.colorScheme.outline,
-                                          ),
+                                        color: theme.colorScheme.outline,
+                                      ),
                                     ),
+                                  ],
                                 ],
                               ),
+                              if (tx.notes != null &&
+                                  tx.notes!.trim().isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  tx.notes!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
