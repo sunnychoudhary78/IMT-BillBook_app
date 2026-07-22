@@ -23,8 +23,6 @@ class EmptyState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: PremiumCard(
-          padding: const EdgeInsets.all(22),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -61,8 +59,8 @@ class EmptyState extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
+  
   }
 }
 

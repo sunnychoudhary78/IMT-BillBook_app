@@ -67,6 +67,22 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
   bool get isEdit => widget.quotationId != null;
 
   @override
+  void initState() {
+    super.initState();
+    _attachLineListeners(_lines.first);
+  }
+
+  void _attachLineListeners(_LineDraft line) {
+    line.qty.addListener(_refreshUi);
+    line.price.addListener(_refreshUi);
+    line.gst.addListener(_refreshUi);
+  }
+
+  void _refreshUi() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
     _notes.dispose();
     _quotationNumber.dispose();
@@ -87,21 +103,28 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     }
     _lines
       ..clear()
-      ..addAll(q.items.map((item) {
-        final line = _LineDraft();
-        line.itemId = item.itemId;
-        line.qty.text = item.quantity.toString();
-        line.price.text = item.unitPrice.toString();
-        line.gst.text = item.gstPercent.toString();
-        line.description.text = item.description ?? '';
-        return line;
-      }));
-    if (_lines.isEmpty) _lines.add(_LineDraft());
+      ..addAll(
+        q.items.map((item) {
+          final line = _LineDraft();
+          line.itemId = item.itemId;
+          line.qty.text = item.quantity.toString();
+          line.price.text = item.unitPrice.toString();
+          line.gst.text = item.gstPercent.toString();
+          line.description.text = item.description ?? '';
+          _attachLineListeners(line);
+          return line;
+        }),
+      );
+    if (_lines.isEmpty) {
+      final line = _LineDraft();
+      _attachLineListeners(line);
+      _lines.add(line);
+    }
     _billTo = q.billTo ?? PartyAddressModel.fromCustomer(q.customer);
     _shipTo = q.shipTo ?? _billTo;
     _fromBranchId = q.fromBranchId ?? '';
-    _shipSameAsBill = _shipTo.name == _billTo.name &&
-        _shipTo.address == _billTo.address;
+    _shipSameAsBill =
+        _shipTo.name == _billTo.name && _shipTo.address == _billTo.address;
   }
 
   void _onCustomerChanged(String? id, List<CustomerModel> customers) {
@@ -140,7 +163,9 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
       canApprove: auth.hasPermission('quotation.approve'),
     );
     if (!canEdit) {
-      ref.read(globalLoadingProvider.notifier).showError(
+      ref
+          .read(globalLoadingProvider.notifier)
+          .showError(
             _status == 'pending_approval'
                 ? 'Only approvers can edit quotations pending approval'
                 : 'This quotation cannot be edited',
@@ -165,9 +190,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (!_assertCanEdit()) return;
     if (_customerId == null) {
-      ref
-          .read(globalLoadingProvider.notifier)
-          .showError('Select a customer');
+      ref.read(globalLoadingProvider.notifier).showError('Select a customer');
       return;
     }
     if (_lines.isEmpty) {
@@ -207,7 +230,9 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     }
 
     setState(() => _loading = true);
-    ref.read(globalLoadingProvider.notifier).showLoading(
+    ref
+        .read(globalLoadingProvider.notifier)
+        .showLoading(
           isEdit ? 'Updating quotation...' : 'Creating quotation...',
         );
 
@@ -242,9 +267,9 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
         );
       }
       ref.read(globalLoadingProvider.notifier).hide();
-      ref.read(globalLoadingProvider.notifier).showSuccess(
-            isEdit ? 'Quotation updated' : 'Quotation created',
-          );
+      ref
+          .read(globalLoadingProvider.notifier)
+          .showSuccess(isEdit ? 'Quotation updated' : 'Quotation created');
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       ref.read(globalLoadingProvider.notifier).hide();
@@ -279,7 +304,9 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                 canApprove: auth.hasPermission('quotation.approve'),
               );
               if (!allowed) {
-                ref.read(globalLoadingProvider.notifier).showError(
+                ref
+                    .read(globalLoadingProvider.notifier)
+                    .showError(
                       q.status == 'pending_approval'
                           ? 'Only approvers can edit quotations pending approval'
                           : 'This quotation cannot be edited',
@@ -311,157 +338,342 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     final itemsAsync = ref.watch(approvedItemsProvider);
     final brandingAsync = ref.watch(solarBrandingProvider);
     final pendingLock = _status == 'pending_approval';
+    final theme = Theme.of(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppAppBar(title: isEdit ? 'Edit Quotation' : 'New Quotation'),
       body: Form(
         key: _formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (customersAsync.isLoading && customersAsync.items.isEmpty)
-              const LinearProgressIndicator()
-            else
-              DropdownButtonFormField<String>(
-                value: _customerId,
-                decoration: const InputDecoration(labelText: 'Customer *'),
-                items: customersAsync.items
-                    .map(
-                      (CustomerModel c) => DropdownMenuItem(
-                        value: c.id,
-                        child: Text(c.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: pendingLock
-                    ? null
-                    : (v) => _onCustomerChanged(v, customersAsync.items),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Select a customer' : null,
-              ),
-            const SizedBox(height: 12),
-            brandingAsync.when(
-              loading: () => const LinearProgressIndicator(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (branding) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FromAddressSelector(
-                    branchId: _fromBranchId,
-                    companyAddress: branding.companyAddress,
-                    branches: branding.branchAddresses,
-                    readOnly: pendingLock,
-                    onChanged: (v) => setState(() => _fromBranchId = v),
-                  ),
-                  const SizedBox(height: 16),
-                  PartyAddressEditor(
-                    key: ValueKey('bill_${_billTo.name}_${_billTo.address}'),
-                    title: 'Bill To',
-                    party: _billTo,
-                    readOnly: pendingLock,
-                    onChanged: (p) => setState(() {
-                      _billTo = p;
-                      if (_shipSameAsBill) _shipTo = p;
-                    }),
-                  ),
-                  const SizedBox(height: 16),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Ship To same as Bill To'),
-                    value: _shipSameAsBill,
-                    onChanged: pendingLock
-                        ? null
-                        : (v) => setState(() {
-                              _shipSameAsBill = v ?? true;
-                              if (_shipSameAsBill) _shipTo = _billTo;
-                            }),
-                  ),
-                  if (!_shipSameAsBill)
-                    PartyAddressEditor(
-                      key: ValueKey(
-                        'ship_${_shipTo.name}_${_shipTo.address}',
-                      ),
-                      title: 'Ship To',
-                      party: _shipTo,
-                      readOnly: pendingLock,
-                      onChanged: (p) => setState(() => _shipTo = p),
-                    ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-            TextFormField(
-              controller: _quotationNumber,
-              decoration: const InputDecoration(
-                labelText: 'Quotation number (optional)',
-                hintText: 'Auto-generated if blank',
-              ),
-              enabled: !pendingLock,
-              inputFormatters: [LengthLimitingTextInputFormatter(50)],
-              validator: (v) => AppValidators.maxLength(
-                v,
-                max: 50,
-                field: 'Quotation number',
-              ),
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Valid until'),
-              subtitle: Text(
-                _validUntil == null ? 'Not set' : formatDate(_validUntil),
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.calendar_today),
-                onPressed: pendingLock ? null : _pickDate,
-              ),
-            ),
-            TextFormField(
-              controller: _notes,
-              decoration: const InputDecoration(labelText: 'Notes'),
-              maxLines: 2,
-              inputFormatters: [LengthLimitingTextInputFormatter(500)],
-              validator: (v) => AppValidators.maxLength(
-                v,
-                max: 500,
-                field: 'Notes',
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Text('Line items',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () => setState(() => _lines.add(_LineDraft())),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add'),
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            MediaQuery.of(context).padding.bottom + 24,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Customer Details Card
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.dividerColor.withOpacity(0.4)),
                 ),
-              ],
-            ),
-            itemsAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Customer Details',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (customersAsync.isLoading &&
+                          customersAsync.items.isEmpty)
+                        const LinearProgressIndicator()
+                      else
+                        DropdownButtonFormField<String>(
+                          value: _customerId,
+                          isExpanded:
+                              true, // <-- Fixes horizontal overflow when item/name is long
+                          decoration: InputDecoration(
+                            labelText: 'Select Customer *',
+                            prefixIcon: const Icon(Icons.person_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 14,
+                            ),
+                          ),
+                          items: customersAsync.items
+                              .map(
+                                (CustomerModel c) => DropdownMenuItem(
+                                  value: c.id,
+                                  child: Text(
+                                    c.name,
+                                    overflow: TextOverflow
+                                        .ellipsis, // <-- Text wrapping overflow safety
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: pendingLock
+                              ? null
+                              : (v) =>
+                                    _onCustomerChanged(v, customersAsync.items),
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Select a customer'
+                              : null,
+                        ),
+                    ],
+                  ),
+                ),
               ),
-              error: (e, _) => Text(cleanError(e)),
-              data: (approved) => Column(
+              const SizedBox(height: 16),
+
+              // Address & Branch Configuration Card
+              brandingAsync.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (branding) => Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: theme.dividerColor.withOpacity(0.4),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Address & Branch Configuration',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FromAddressSelector(
+                          branchId: _fromBranchId,
+                          companyAddress: branding.companyAddress,
+                          branches: branding.branchAddresses,
+                          readOnly: pendingLock,
+                          onChanged: (v) => setState(() => _fromBranchId = v),
+                        ),
+                        const Divider(height: 28),
+                        PartyAddressEditor(
+                          key: ValueKey(
+                            'bill_${_billTo.name}_${_billTo.address}',
+                          ),
+                          title: 'Bill To',
+                          party: _billTo,
+                          readOnly: pendingLock,
+                          onChanged: (p) => setState(() {
+                            _billTo = p;
+                            if (_shipSameAsBill) _shipTo = p;
+                          }),
+                        ),
+                        const SizedBox(height: 8),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text(
+                            'Shipping address is same as billing',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          value: _shipSameAsBill,
+                          onChanged: pendingLock
+                              ? null
+                              : (v) => setState(() {
+                                  _shipSameAsBill = v;
+                                  if (_shipSameAsBill) _shipTo = _billTo;
+                                }),
+                        ),
+                        if (!_shipSameAsBill) ...[
+                          const SizedBox(height: 8),
+                          PartyAddressEditor(
+                            key: ValueKey(
+                              'ship_${_shipTo.name}_${_shipTo.address}',
+                            ),
+                            title: 'Ship To',
+                            party: _shipTo,
+                            readOnly: pendingLock,
+                            onChanged: (p) => setState(() => _shipTo = p),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Quotation Information Card
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.dividerColor.withOpacity(0.4)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Quotation Information',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _quotationNumber,
+                        decoration: InputDecoration(
+                          labelText: 'Quotation Number (Optional)',
+                          hintText: 'Auto-generated if blank',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 14,
+                          ),
+                        ),
+                        enabled: !pendingLock,
+                        inputFormatters: [LengthLimitingTextInputFormatter(50)],
+                        validator: (v) => AppValidators.maxLength(
+                          v,
+                          max: 50,
+                          field: 'Quotation number',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: pendingLock ? null : _pickDate,
+                        borderRadius: BorderRadius.circular(10),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Validity Date',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 14,
+                            ),
+                          ),
+                          child: Text(
+                            _validUntil == null
+                                ? 'Select Date'
+                                : formatDate(_validUntil),
+                            style: TextStyle(
+                              color: _validUntil == null
+                                  ? theme.hintColor
+                                  : theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _notes,
+                        decoration: InputDecoration(
+                          labelText: 'Notes / Remarks',
+                          // prefixIcon: const Icon(Icons.note_alt_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 14,
+                          ),
+                        ),
+                        maxLines: 2,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(500),
+                        ],
+                        validator: (v) => AppValidators.maxLength(
+                          v,
+                          max: 500,
+                          field: 'Notes',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Line Items Header Section
+              Row(
                 children: [
-                  for (var i = 0; i < _lines.length; i++)
-                    _buildLineCard(i, approved),
+                  Text(
+                    'Line Items',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() {
+                      final newDraft = _LineDraft();
+                      _attachLineListeners(newDraft);
+                      _lines.add(newDraft);
+                    }),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Item'),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 16),
-            DocumentTotalsSummary(lines: _lineTotalsInputs()),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _loading ? null : _save,
-              child: Text(isEdit ? 'Update' : 'Create'),
-            ),
-          ],
+              const SizedBox(height: 12),
+
+              itemsAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (e, _) => Text(cleanError(e)),
+                data: (approved) => Column(
+                  children: [
+                    for (var i = 0; i < _lines.length; i++)
+                      _buildLineCard(i, approved),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Summary Section
+              Card(
+                elevation: 0,
+                color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: theme.dividerColor.withOpacity(0.4)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: DocumentTotalsSummary(lines: _lineTotalsInputs()),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Submit Button inside Form Flow (Safe from ViewInsets)
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: _loading ? null : _save,
+                child: Text(
+                  isEdit ? 'Update Quotation' : 'Create Quotation',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -469,37 +681,79 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
 
   Widget _buildLineCard(int index, List<ItemModel> approved) {
     final line = _lines[index];
+    final theme = Theme.of(context);
+
     return Card(
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: theme.dividerColor.withOpacity(0.4)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Text('Line ${index + 1}',
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                const Spacer(),
-                if (_lines.length > 1)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
+            // FIXED: Row + Spacer ko Align se replace kiya taaki RenderFlex height & width overflow zero ho jaye
+            if (_lines.length > 1)
+              Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  height: 32,
+                  width: 32,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: theme.colorScheme.error,
+                      size: 20,
+                    ),
                     onPressed: () {
                       setState(() {
                         _lines.removeAt(index).dispose();
                       });
                     },
                   ),
-              ],
-            ),
+                ),
+              ),
+            if (_lines.length > 1) const SizedBox(height: 8),
+
             DropdownButtonFormField<String>(
               value: line.itemId,
-              decoration: const InputDecoration(labelText: 'Item *'),
+              isExpanded: true, // Mandatory
+              decoration: InputDecoration(
+                labelText: 'Select Item *',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+              ),
+              selectedItemBuilder: (context) {
+                return approved.map((it) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '${it.name} (${formatInr(it.sellingPrice)})',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  );
+                }).toList();
+              },
               items: approved
                   .map(
                     (it) => DropdownMenuItem(
                       value: it.id,
                       child: Text(
                         '${it.name} (${formatInr(it.sellingPrice)}, ${ItemUnits.labelFor(it.unit)}, GST ${it.gstPercent}%)',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
                   )
@@ -526,7 +780,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
               validator: (v) => v == null ? 'Select item' : null,
             ),
             if (line.itemId != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Builder(
                 builder: (context) {
                   ItemModel? selected;
@@ -540,28 +794,44 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                   final item = selected;
                   final codes = [
                     if (item.hsnCode != null && item.hsnCode!.isNotEmpty)
-                      item.hsnCode,
+                      'HSN: ${item.hsnCode}',
                     if (item.sacCode != null && item.sacCode!.isNotEmpty)
-                      item.sacCode,
-                  ].join(' / ');
+                      'SAC: ${item.sacCode}',
+                  ].join(' | ');
                   if (codes.isEmpty) return const SizedBox.shrink();
                   return Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
-                      'HSN/SAC: $codes',
-                      style: Theme.of(context).textTheme.bodySmall,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Text(
+                        codes,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.hintColor,
+                        ),
+                      ),
                     ),
                   );
                 },
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
+                  flex: 2,
                   child: TextFormField(
                     controller: line.qty,
-                    decoration: const InputDecoration(labelText: 'Qty'),
+                    decoration: InputDecoration(
+                      labelText: 'Qty',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 12,
+                      ),
+                    ),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
@@ -572,9 +842,19 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
+                  flex: 3,
                   child: TextFormField(
                     controller: line.price,
-                    decoration: const InputDecoration(labelText: 'Price'),
+                    decoration: InputDecoration(
+                      labelText: 'Price',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 12,
+                      ),
+                    ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -588,9 +868,19 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
+                  flex: 2,
                   child: TextFormField(
                     controller: line.gst,
-                    decoration: const InputDecoration(labelText: 'GST %'),
+                    decoration: InputDecoration(
+                      labelText: 'GST %',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 12,
+                      ),
+                    ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -603,16 +893,22 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextFormField(
               controller: line.description,
-              decoration: const InputDecoration(labelText: 'Description'),
-              inputFormatters: [LengthLimitingTextInputFormatter(250)],
-              validator: (v) => AppValidators.maxLength(
-                v,
-                max: 250,
-                field: 'Description',
+              decoration: InputDecoration(
+                labelText: 'Description / Item Details',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
               ),
+              inputFormatters: [LengthLimitingTextInputFormatter(250)],
+              validator: (v) =>
+                  AppValidators.maxLength(v, max: 250, field: 'Description'),
             ),
           ],
         ),

@@ -163,27 +163,39 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
         key: _formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          // Added extra bottom padding so the action button isn't cut off on lower screen bounds
+          padding: EdgeInsets.only(
+            left: AppSpacing.md,
+            right: AppSpacing.md,
+            top: AppSpacing.md,
+            bottom: AppSpacing.xl + MediaQuery.of(context).padding.bottom + 24,
+          ),
           children: [
             if (readOnly)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: PremiumCard(
-                  child: Row(
-                    children: [
-                      Icon(Icons.lock_outline, color: scheme.tertiary),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Approved items cannot be edited.',
-                          style: TextStyle(
-                            color: scheme.tertiary,
-                            fontWeight: FontWeight.w600,
-                          ),
+              Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: scheme.tertiaryContainer.withAlpha(50),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: scheme.tertiary.withAlpha(100),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline, color: scheme.tertiary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Approved items cannot be edited.',
+                        style: TextStyle(
+                          color: scheme.tertiary,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             const PremiumSectionTitle(
@@ -191,7 +203,15 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
               subtitle: 'Name, SKU and classification',
             ),
             const SizedBox(height: AppSpacing.sm),
-            PremiumCard(
+            
+            // Replaced PremiumCard with padded Container structure
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Column(
                 children: [
                   TextFormField(
@@ -293,13 +313,21 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            
             const PremiumSectionTitle(
               title: 'Pricing',
               subtitle: 'Tax and stock thresholds',
             ),
             const SizedBox(height: AppSpacing.sm),
-            PremiumCard(
+            
+            // Replaced PremiumCard with padded Container structure
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Column(
                 children: [
                   TextFormField(
@@ -348,11 +376,14 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            
             if (canSave && !readOnly)
-              FilledButton(
-                onPressed: _loading ? null : _save,
-                child: Text(isEdit ? 'Update' : 'Create'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _loading ? null : _save,
+                  child: Text(isEdit ? 'Update' : 'Create'),
+                ),
               ),
           ],
         ),

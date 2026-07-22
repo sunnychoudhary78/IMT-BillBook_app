@@ -23,22 +23,57 @@ class StockScreen extends ConsumerWidget {
     final state = ref.watch(stockListProvider);
     final warehouses = ref.watch(warehousesProvider);
     final canUpdate = ref.watch(authProvider).hasPermission('inventory.update');
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppAppBar(
-        title: 'Stock',
+        title: 'Stock Management',
         actions: [
           if (canUpdate)
             PopupMenuButton<_MoveType>(
               icon: const Icon(Icons.more_vert),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               onSelected: (type) => _showMoveSheet(context, ref, type),
               itemBuilder: (_) => const [
-                PopupMenuItem(value: _MoveType.stockIn, child: Text('Stock In')),
-                PopupMenuItem(value: _MoveType.stockOut, child: Text('Stock Out')),
-                PopupMenuItem(value: _MoveType.transfer, child: Text('Transfer')),
+                PopupMenuItem(
+                  value: _MoveType.stockIn,
+                  child: Row(
+                    children: [
+                      Icon(Icons.arrow_downward, color: Colors.green, size: 20),
+                      SizedBox(width: 12),
+                      Text('Stock In'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _MoveType.stockOut,
+                  child: Row(
+                    children: [
+                      Icon(Icons.arrow_upward, color: Colors.orange, size: 20),
+                      SizedBox(width: 12),
+                      Text('Stock Out'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _MoveType.transfer,
+                  child: Row(
+                    children: [
+                      Icon(Icons.swap_horiz, color: Colors.blue, size: 20),
+                      SizedBox(width: 12),
+                      Text('Transfer'),
+                    ],
+                  ),
+                ),
                 PopupMenuItem(
                   value: _MoveType.adjustment,
-                  child: Text('Adjustment'),
+                  child: Row(
+                    children: [
+                      Icon(Icons.tune, color: Colors.purple, size: 20),
+                      SizedBox(width: 12),
+                      Text('Adjustment'),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -46,53 +81,121 @@ class StockScreen extends ConsumerWidget {
       ),
       floatingActionButton: canUpdate
           ? FloatingActionButton.extended(
-              onPressed: () =>
-                  _showMoveSheet(context, ref, _MoveType.stockIn),
+              onPressed: () => _showMoveSheet(context, ref, _MoveType.stockIn),
               icon: const Icon(Icons.add),
               label: const Text('Stock In'),
             )
           : null,
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          // Filter Section
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(10),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ],
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: warehouses.when(
                     loading: () => const LinearProgressIndicator(),
                     error: (_, __) => const SizedBox.shrink(),
-                    data: (list) => DropdownButtonFormField<String?>(
-                      value: state.warehouseId,
-                      decoration:
-                          const InputDecoration(labelText: 'Warehouse'),
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text('All warehouses'),
+                    data: (list) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest.withAlpha(120),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.colorScheme.outline.withAlpha(50),
                         ),
-                        ...list.map(
-                          (w) => DropdownMenuItem(
-                            value: w.id,
-                            child: Text(w.name),
-                          ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String?>(
+                          value: state.warehouseId,
+                          isExpanded: true,
+                          hint: const Text('Select Warehouse'),
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                          items: [
+                            DropdownMenuItem<String?>(
+                              value: null,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.storefront_outlined,
+                                      size: 18, color: theme.colorScheme.primary),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'All Warehouses',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ...list.map(
+                              (w) => DropdownMenuItem<String?>(
+                                value: w.id,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.warehouse_outlined, size: 18),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          w.name,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: (v) => ref
+                              .read(stockListProvider.notifier)
+                              .setWarehouse(v),
                         ),
-                      ],
-                      onChanged: (v) =>
-                          ref.read(stockListProvider.notifier).setWarehouse(v),
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 FilterChip(
-                  label: const Text('Low only'),
+                  avatar: Icon(
+                    state.lowStockOnly ? Icons.warning_rounded : Icons.filter_alt_outlined,
+                    size: 16,
+                    color: state.lowStockOnly
+                        ? theme.colorScheme.onErrorContainer
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  label: const Text('Low Stock'),
                   selected: state.lowStockOnly,
+                  selectedColor: theme.colorScheme.errorContainer,
+                  labelStyle: TextStyle(
+                    color: state.lowStockOnly
+                        ? theme.colorScheme.onErrorContainer
+                        : theme.colorScheme.onSurface,
+                    fontWeight:
+                        state.lowStockOnly ? FontWeight.bold : FontWeight.normal,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   onSelected: (v) =>
                       ref.read(stockListProvider.notifier).setLowStockOnly(v),
                 ),
               ],
             ),
           ),
+
+          // Main List View
           Expanded(
             child: state.isLoading && state.items.isEmpty
                 ? const LoadingState()
@@ -110,50 +213,144 @@ class StockScreen extends ConsumerWidget {
                                 children: const [
                                   SizedBox(height: 120),
                                   EmptyState(
-                                    title: 'No stock records',
+                                    title: 'No stock records found',
                                     icon: Icons.inventory_2_outlined,
                                   ),
                                 ],
                               )
                             : ListView.separated(
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
                                 itemCount: state.items.length,
                                 separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 12),
                                 itemBuilder: (context, index) {
                                   final s = state.items[index];
-                                  return Card(
-                                    color: s.isLowStock
-                                        ? Colors.orange.withValues(alpha: 0.08)
-                                        : null,
-                                    child: ListTile(
-                                      title: Text(s.itemName),
-                                      subtitle: Text(
-                                        '${s.warehouseName} · Min ${s.minStock}',
+                                  final isLow = s.isLowStock;
+
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: theme.cardColor,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: isLow
+                                            ? Colors.orange.withAlpha(150)
+                                            : theme.colorScheme.outline.withAlpha(30),
+                                        width: isLow ? 1.5 : 1,
                                       ),
-                                      trailing: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withAlpha(8),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        )
+                                      ],
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Row(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.end,
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            '${s.currentQuantity}',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: s.isLowStock
-                                                  ? Colors.orange
-                                                  : null,
+                                          CircleAvatar(
+                                            backgroundColor: isLow
+                                                ? Colors.orange.withAlpha(30)
+                                                : theme.colorScheme.primaryContainer,
+                                            child: Icon(
+                                              isLow
+                                                  ? Icons.warning_amber_rounded
+                                                  : Icons.inventory_2_outlined,
+                                              color: isLow
+                                                  ? Colors.orange.shade800
+                                                  : theme.colorScheme.primary,
                                             ),
                                           ),
-                                          if (s.isLowStock)
-                                            const Text(
-                                              'Low',
-                                              style: TextStyle(
-                                                color: Colors.orange,
-                                                fontSize: 12,
-                                              ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  s.itemName,
+                                                  style: theme
+                                                      .textTheme.titleMedium
+                                                      ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.warehouse_outlined,
+                                                      size: 14,
+                                                      color: theme.colorScheme
+                                                          .onSurfaceVariant,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      s.warehouseName,
+                                                      style: theme
+                                                          .textTheme.bodySmall
+                                                          ?.copyWith(
+                                                        color: theme.colorScheme
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                    const Text(' • '),
+                                                    Text(
+                                                      'Min: ${s.minStock}',
+                                                      style: theme
+                                                          .textTheme.bodySmall
+                                                          ?.copyWith(
+                                                        color: theme.colorScheme
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
                                             ),
+                                          ),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                '${s.currentQuantity}',
+                                                style: theme
+                                                    .textTheme.titleLarge
+                                                    ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isLow
+                                                      ? Colors.orange.shade800
+                                                      : theme.colorScheme.onSurface,
+                                                ),
+                                              ),
+                                              if (isLow)
+                                                Container(
+                                                  margin: const EdgeInsets.only(
+                                                      top: 4),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.orange.shade100,
+                                                    borderRadius:
+                                                        BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    'Low Stock',
+                                                    style: TextStyle(
+                                                      color: Colors.orange.shade900,
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -186,9 +383,9 @@ Future<void> _showMoveSheet(
     ref.read(globalLoadingProvider.notifier).showError(
           moveItems.isEmpty
               ? (type == _MoveType.stockIn || type == _MoveType.adjustment
-                  ? 'No stockable items'
-                  : 'No approved items')
-              : 'No warehouses',
+                  ? 'No stockable items available'
+                  : 'No approved items available')
+              : 'No warehouses available',
         );
     return;
   }
@@ -218,13 +415,16 @@ Future<void> _showMoveSheet(
   final title = switch (type) {
     _MoveType.stockIn => 'Stock In',
     _MoveType.stockOut => 'Stock Out',
-    _MoveType.transfer => 'Transfer',
-    _MoveType.adjustment => 'Adjustment',
+    _MoveType.transfer => 'Transfer Stock',
+    _MoveType.adjustment => 'Adjust Stock',
   };
 
   final saved = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setModalState) {
@@ -234,10 +434,10 @@ Future<void> _showMoveSheet(
 
           return Padding(
             padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 16,
-              bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
+              left: 20,
+              right: 20,
+              top: 12,
+              bottom: MediaQuery.viewInsetsOf(context).bottom + 20,
             ),
             child: Form(
               key: formKey,
@@ -247,11 +447,32 @@ Future<void> _showMoveSheet(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(title, style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 12),
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: itemId,
-                      decoration: const InputDecoration(labelText: 'Item *'),
+                      decoration: InputDecoration(
+                        labelText: 'Select Item *',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                       items: moveItems
                           .map(
                             (ItemModel i) => DropdownMenuItem(
@@ -268,12 +489,16 @@ Future<void> _showMoveSheet(
                       validator: (v) =>
                           v == null || v.isEmpty ? 'Select an item' : null,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     if (type == _MoveType.transfer) ...[
                       DropdownButtonFormField<String>(
                         value: fromWarehouseId,
-                        decoration:
-                            const InputDecoration(labelText: 'From *'),
+                        decoration: InputDecoration(
+                          labelText: 'From Warehouse *',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         items: warehouses
                             .map(
                               (w) => DropdownMenuItem(
@@ -288,10 +513,15 @@ Future<void> _showMoveSheet(
                             ? 'Select source warehouse'
                             : null,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         value: toWarehouseId,
-                        decoration: const InputDecoration(labelText: 'To *'),
+                        decoration: InputDecoration(
+                          labelText: 'To Warehouse *',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         items: warehouses
                             .map(
                               (w) => DropdownMenuItem(
@@ -312,11 +542,15 @@ Future<void> _showMoveSheet(
                           return null;
                         },
                       ),
-                    ] else
+                    ] else ...[
                       DropdownButtonFormField<String>(
                         value: warehouseId,
-                        decoration:
-                            const InputDecoration(labelText: 'Warehouse *'),
+                        decoration: InputDecoration(
+                          labelText: 'Warehouse *',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         items: warehouses
                             .map(
                               (WarehouseModel w) => DropdownMenuItem(
@@ -331,20 +565,30 @@ Future<void> _showMoveSheet(
                             ? 'Select a warehouse'
                             : null,
                       ),
+                    ],
                     if (type == _MoveType.stockOut) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Available: $available',
-                        style: Theme.of(context).textTheme.bodySmall,
+                      const SizedBox(height: 6),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          'Available Stock: $available',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
                       ),
                     ],
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: qty,
                       decoration: InputDecoration(
                         labelText: type == _MoveType.adjustment
-                            ? 'New quantity *'
+                            ? 'New Quantity *'
                             : 'Quantity *',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       keyboardType: TextInputType.number,
                       inputFormatters: [
@@ -366,10 +610,15 @@ Future<void> _showMoveSheet(
                         return null;
                       },
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: notes,
-                      decoration: const InputDecoration(labelText: 'Notes'),
+                      decoration: InputDecoration(
+                        labelText: 'Notes (Optional)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                       inputFormatters: [
                         LengthLimitingTextInputFormatter(250),
                       ],
@@ -379,17 +628,28 @@ Future<void> _showMoveSheet(
                         field: 'Notes',
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: () {
-                        if (!formKey.currentState!.validate()) return;
-                        if (type == _MoveType.transfer &&
-                            fromWarehouseId == toWarehouseId) {
-                          return;
-                        }
-                        Navigator.pop(context, true);
-                      },
-                      child: const Text('Submit'),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 48,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          if (!formKey.currentState!.validate()) return;
+                          if (type == _MoveType.transfer &&
+                              fromWarehouseId == toWarehouseId) {
+                            return;
+                          }
+                          Navigator.pop(context, true);
+                        },
+                        child: const Text(
+                          'Submit Transaction',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     ),
                   ],
                 ),

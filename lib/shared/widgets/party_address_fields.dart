@@ -237,22 +237,29 @@ class FromAddressSelector extends StatelessWidget {
           'Branch address shown on the PDF (company name, GST, and contact stay the same).',
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         DropdownButtonFormField<String?>(
           value: branchId ?? '',
+          isExpanded: true, // <-- fix: dropdown ko available width use karne do
           decoration: const InputDecoration(labelText: 'Select address'),
           items: [
             if (companyAddress.isNotEmpty)
               DropdownMenuItem<String?>(
                 value: '',
                 child: Text(
-                  'Head office - ${companyAddress.length > 60 ? '${companyAddress.substring(0, 60)}...' : companyAddress}',
+                  'Head office - $companyAddress',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
             ...branches.map(
               (b) => DropdownMenuItem<String?>(
                 value: b.id ?? '',
-                child: Text('${b.label}${b.isDefault ? ' (default)' : ''}'),
+                child: Text(
+                  '${b.label}${b.isDefault ? ' (default)' : ''}',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
             ),
           ],

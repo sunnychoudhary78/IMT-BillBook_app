@@ -126,133 +126,171 @@ class _InvoiceCreateScreenState extends ConsumerState<InvoiceCreateScreen> {
 
     return Scaffold(
       appBar: const AppAppBar(title: 'Create Invoice'),
-      body: async.when(
-        loading: () => const LoadingState(),
-        error: (e, _) => ErrorState(
-          message: cleanError(e),
-          onRetry: () => ref.invalidate(invoiceableQuotationsProvider),
-        ),
-        data: (quotations) {
-          if (quotations.isEmpty) {
-            return const EmptyState(
-              title: 'No invoiceable quotations',
-              subtitle: 'Approve a quotation first',
-              icon: Icons.request_quote_outlined,
-            );
-          }
+      body: SafeArea(
+        child: async.when(
+          loading: () => const LoadingState(),
+          error: (e, _) => ErrorState(
+            message: cleanError(e),
+            onRetry: () => ref.invalidate(invoiceableQuotationsProvider),
+          ),
+          data: (quotations) {
+            if (quotations.isEmpty) {
+              return const EmptyState(
+                title: 'No invoiceable quotations',
+                subtitle: 'Approve a quotation first',
+                icon: Icons.request_quote_outlined,
+              );
+            }
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              DropdownButtonFormField<String>(
-                value: _quotationId,
-                decoration: const InputDecoration(
-                  labelText: 'Approved quotation *',
-                ),
-                items: quotations
-                    .map(
-                      (q) => DropdownMenuItem(
+            return SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: _quotationId,
+                    decoration: const InputDecoration(
+                      labelText: 'Approved quotation *',
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                    ),
+                    items: quotations.map((q) {
+                      final formattedText =
+                          '${q.quotationNumber} • ${q.customerName} (${formatInr(q.totalAmount)})';
+                      return DropdownMenuItem<String>(
                         value: q.id,
                         child: Text(
-                          '${q.quotationNumber} · ${q.customerName}',
+                          formattedText,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (v) async {
+                      setState(() => _quotationId = v);
+                      await _loadPreview();
+                    },
+                  ),
+                  if (_preview != null) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _preview!.customerName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text('Total: ${formatInr(_preview!.totalAmount)}'),
+                            Text('Items: ${_preview!.items.length}'),
+                            const SizedBox(height: 8),
+                            const Divider(),
+                            const SizedBox(height: 4),
+                            ..._preview!.items.map(
+                              (line) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Text(
+                                  '• ${line.displayName} · ${line.quantity} x ${formatInr(line.unitPrice)}',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    )
-                    .toList(),
-                onChanged: (v) async {
-                  setState(() => _quotationId = v);
-                  await _loadPreview();
-                },
-              ),
-              if (_preview != null) ...[
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  brandingAsync.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (branding) => Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _preview!.customerName,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        FromAddressSelector(
+                          branchId: _fromBranchId,
+                          companyAddress: branding.companyAddress,
+                          branches: branding.branchAddresses,
+                          onChanged: (v) => setState(() => _fromBranchId = v),
                         ),
-                        Text('Total: ${formatInr(_preview!.totalAmount)}'),
-                        Text('Items: ${_preview!.items.length}'),
-                        const SizedBox(height: 8),
-                        ..._preview!.items.map(
-                          (line) => Text(
-                            '${line.displayName} · ${line.quantity} x ${formatInr(line.unitPrice)}',
+                        const SizedBox(height: 16),
+                        PartyAddressEditor(
+                          key: ValueKey(
+                            'bill_${_billTo.name}_${_billTo.address}',
                           ),
+                          title: 'Bill To',
+                          party: _billTo,
+                          onChanged: (p) => setState(() {
+                            _billTo = p;
+                            if (_shipSameAsBill) _shipTo = p;
+                          }),
                         ),
+                        const SizedBox(height: 16),
+                        CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Ship To same as Bill To'),
+                          value: _shipSameAsBill,
+                          onChanged: (v) => setState(() {
+                            _shipSameAsBill = v ?? true;
+                            if (_shipSameAsBill) _shipTo = _billTo;
+                          }),
+                        ),
+                        if (!_shipSameAsBill) ...[
+                          const SizedBox(height: 12),
+                          PartyAddressEditor(
+                            key: ValueKey(
+                              'ship_${_shipTo.name}_${_shipTo.address}',
+                            ),
+                            title: 'Ship To',
+                            party: _shipTo,
+                            onChanged: (p) => setState(() => _shipTo = p),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                ),
-              ],
-              const SizedBox(height: 16),
-              brandingAsync.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (_, __) => const SizedBox.shrink(),
-                data: (branding) => Column(
-                  children: [
-                    FromAddressSelector(
-                      branchId: _fromBranchId,
-                      companyAddress: branding.companyAddress,
-                      branches: branding.branchAddresses,
-                      onChanged: (v) => setState(() => _fromBranchId = v),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _notes,
+                    decoration: const InputDecoration(labelText: 'Notes'),
+                    maxLines: 2,
+                    inputFormatters: [LengthLimitingTextInputFormatter(500)],
+                    validator: (v) => AppValidators.maxLength(
+                      v,
+                      max: 500,
+                      field: 'Notes',
                     ),
-                    const SizedBox(height: 16),
-                    PartyAddressEditor(
-                      key: ValueKey('bill_${_billTo.name}_${_billTo.address}'),
-                      title: 'Bill To',
-                      party: _billTo,
-                      onChanged: (p) => setState(() {
-                        _billTo = p;
-                        if (_shipSameAsBill) _shipTo = p;
-                      }),
-                    ),
-                    const SizedBox(height: 16),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ship To same as Bill To'),
-                      value: _shipSameAsBill,
-                      onChanged: (v) => setState(() {
-                        _shipSameAsBill = v ?? true;
-                        if (_shipSameAsBill) _shipTo = _billTo;
-                      }),
-                    ),
-                    if (!_shipSameAsBill)
-                      PartyAddressEditor(
-                        key: ValueKey(
-                          'ship_${_shipTo.name}_${_shipTo.address}',
-                        ),
-                        title: 'Ship To',
-                        party: _shipTo,
-                        onChanged: (p) => setState(() => _shipTo = p),
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton(
+                      onPressed: _loading ? null : _create,
+                      child: const Text(
+                        'Create invoice',
+                        style: TextStyle(fontSize: 16),
                       ),
-                  ],
-                ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _notes,
-                decoration: const InputDecoration(labelText: 'Notes'),
-                maxLines: 2,
-                inputFormatters: [LengthLimitingTextInputFormatter(500)],
-                validator: (v) => AppValidators.maxLength(
-                  v,
-                  max: 500,
-                  field: 'Notes',
-                ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _loading ? null : _create,
-                child: const Text('Create invoice'),
-              ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

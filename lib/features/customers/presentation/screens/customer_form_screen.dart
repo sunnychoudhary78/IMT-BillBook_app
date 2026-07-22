@@ -8,7 +8,6 @@ import 'package:solar_erp_app/features/auth/presentation/providers/auth_provider
 import 'package:solar_erp_app/shared/utils/validators.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
-import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
 
 import '../../data/models/customer_model.dart';
 import '../providers/customer_providers.dart';
@@ -151,174 +150,210 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
         : ref.watch(authProvider).hasPermission('customer.create');
 
     return Scaffold(
-      backgroundColor: scheme.surfaceContainerLowest,
+      backgroundColor: scheme.surface,
       appBar: AppAppBar(title: isEdit ? 'Edit Customer' : 'New Customer'),
       body: Form(
         key: _formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          children: [
-            const PremiumSectionTitle(
-              title: 'Basic',
-              subtitle: 'Customer identity',
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            PremiumCard(
-              child: TextFormField(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Basic Section
+              _buildSectionHeader('Basic Info', 'Customer identity details'),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
                 controller: _name,
-                decoration: const InputDecoration(labelText: 'Name *'),
+                decoration: const InputDecoration(
+                  labelText: 'Name *',
+                  hintText: 'Enter full name',
+                ),
                 textCapitalization: TextCapitalization.words,
                 inputFormatters: [LengthLimitingTextInputFormatter(100)],
                 validator: (v) => AppValidators.entityName(v, 'Name'),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const PremiumSectionTitle(
-              title: 'Contact',
-              subtitle: 'Phone and email for sales follow-up',
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            PremiumCard(
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _phone,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone',
-                      hintText: '10-digit mobile',
-                    ),
-                    keyboardType: TextInputType.phone,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                    validator: AppValidators.optionalPhone,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _email,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    keyboardType: TextInputType.emailAddress,
-                    inputFormatters: [LengthLimitingTextInputFormatter(100)],
-                    validator: AppValidators.optionalEmail,
-                  ),
+
+              const SizedBox(height: AppSpacing.xl),
+
+              // Contact Section
+              _buildSectionHeader('Contact Info', 'Phone and email details'),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  hintText: '10-digit mobile number',
+                ),
+                keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
                 ],
+                validator: AppValidators.optionalPhone,
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const PremiumSectionTitle(title: 'Address'),
-            const SizedBox(height: AppSpacing.sm),
-            PremiumCard(
-              child: Column(
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _email,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'example@domain.com',
+                ),
+                keyboardType: TextInputType.emailAddress,
+                inputFormatters: [LengthLimitingTextInputFormatter(100)],
+                validator: AppValidators.optionalEmail,
+              ),
+
+              const SizedBox(height: AppSpacing.xl),
+
+              // Address Section
+              _buildSectionHeader('Address Details', 'Primary location'),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _address,
+                decoration: const InputDecoration(labelText: 'Street Address'),
+                maxLines: 2,
+                inputFormatters: [LengthLimitingTextInputFormatter(250)],
+                validator: (v) => AppValidators.maxLength(
+                  v,
+                  max: 250,
+                  field: 'Address',
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
                 children: [
-                  TextFormField(
-                    controller: _address,
-                    decoration: const InputDecoration(labelText: 'Address'),
-                    maxLines: 2,
-                    inputFormatters: [LengthLimitingTextInputFormatter(250)],
-                    validator: (v) => AppValidators.maxLength(
-                      v,
-                      max: 250,
-                      field: 'Address',
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _city,
-                          decoration: const InputDecoration(labelText: 'City'),
-                          textCapitalization: TextCapitalization.words,
-                          inputFormatters: [
-                            LengthLimitingTextInputFormatter(50),
-                          ],
-                          validator: (v) => AppValidators.maxLength(
-                            v,
-                            max: 50,
-                            field: 'City',
-                          ),
-                        ),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _city,
+                      decoration: const InputDecoration(labelText: 'City'),
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [LengthLimitingTextInputFormatter(50)],
+                      validator: (v) => AppValidators.maxLength(
+                        v,
+                        max: 50,
+                        field: 'City',
                       ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _state,
-                          decoration: const InputDecoration(labelText: 'State'),
-                          textCapitalization: TextCapitalization.words,
-                          inputFormatters: [
-                            LengthLimitingTextInputFormatter(50),
-                          ],
-                          validator: (v) => AppValidators.maxLength(
-                            v,
-                            max: 50,
-                            field: 'State',
-                          ),
-                        ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _state,
+                      decoration: const InputDecoration(labelText: 'State'),
+                      textCapitalization: TextCapitalization.words,
+                      inputFormatters: [LengthLimitingTextInputFormatter(50)],
+                      validator: (v) => AppValidators.maxLength(
+                        v,
+                        max: 50,
+                        field: 'State',
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _pincode,
-                    decoration: const InputDecoration(labelText: 'Pincode'),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(6),
-                    ],
-                    validator: AppValidators.pincode,
+                    ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            const PremiumSectionTitle(title: 'Tax'),
-            const SizedBox(height: AppSpacing.sm),
-            PremiumCard(
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _gst,
-                    decoration: const InputDecoration(
-                      labelText: 'GST Number',
-                      hintText: '15-character GSTIN',
-                    ),
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
-                      LengthLimitingTextInputFormatter(15),
-                      _UpperCaseTextFormatter(),
-                    ],
-                    validator: AppValidators.gstNumber,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _aadhar,
-                    decoration: const InputDecoration(
-                      labelText: 'Aadhar Number',
-                      hintText: '12-digit Aadhar',
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(12),
-                    ],
-                    validator: AppValidators.aadharNumber,
-                  ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _pincode,
+                decoration: const InputDecoration(labelText: 'Pincode'),
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(6),
                 ],
+                validator: AppValidators.pincode,
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            if (canSave)
-              FilledButton(
-                onPressed: _loading ? null : _save,
-                child: Text(isEdit ? 'Update' : 'Create'),
+
+              const SizedBox(height: AppSpacing.xl),
+
+              // Tax Section
+              _buildSectionHeader('Tax & Identification', 'GST and Aadhar verification'),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _gst,
+                decoration: const InputDecoration(
+                  labelText: 'GST Number',
+                  hintText: '15-character GSTIN',
+                ),
+                textCapitalization: TextCapitalization.characters,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                  LengthLimitingTextInputFormatter(15),
+                  _UpperCaseTextFormatter(),
+                ],
+                validator: AppValidators.gstNumber,
               ),
-          ],
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _aadhar,
+                decoration: const InputDecoration(
+                  labelText: 'Aadhar Number',
+                  hintText: '12-digit Aadhar',
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(12),
+                ],
+                validator: AppValidators.aadharNumber,
+              ),
+            ],
+          ),
         ),
       ),
+      bottomNavigationBar: canSave
+          ? SafeArea(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  border: Border(
+                    top: BorderSide(
+                      color: scheme.outlineVariant.withAlpha(80),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: _loading ? null : _save,
+                    child: Text(
+                      isEdit ? 'Update Customer' : 'Create Customer',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildSectionHeader(String title, String subtitle) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }

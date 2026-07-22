@@ -53,12 +53,30 @@ class _InvoiceDirectFormScreenState
   final _ewayBillNo = TextEditingController();
   String? _customerId;
   String? _paymentMode;
-  final List<_LineDraft> _lines = [_LineDraft()];
+  final List<_LineDraft> _lines = [];
   bool _loading = false;
   PartyAddressModel _billTo = PartyAddressModel.empty();
   PartyAddressModel _shipTo = PartyAddressModel.empty();
   String? _fromBranchId = '';
   bool _shipSameAsBill = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _addNewLine();
+  }
+
+  void _addNewLine() {
+    final line = _LineDraft();
+    line.qty.addListener(_onLineInputChanged);
+    line.price.addListener(_onLineInputChanged);
+    line.gst.addListener(_onLineInputChanged);
+    _lines.add(line);
+  }
+
+  void _onLineInputChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
@@ -67,6 +85,9 @@ class _InvoiceDirectFormScreenState
     _motorVehicleNo.dispose();
     _ewayBillNo.dispose();
     for (final l in _lines) {
+      l.qty.removeListener(_onLineInputChanged);
+      l.price.removeListener(_onLineInputChanged);
+      l.gst.removeListener(_onLineInputChanged);
       l.dispose();
     }
     super.dispose();
@@ -204,143 +225,157 @@ class _InvoiceDirectFormScreenState
 
     return Scaffold(
       appBar: const AppAppBar(title: 'Direct Invoice'),
-      body: Form(
-        key: _formKey,
-        autovalidateMode: AutovalidateMode.onUserInteraction,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (customersAsync.isLoading && customersAsync.items.isEmpty)
-              const LinearProgressIndicator()
-            else
-              DropdownButtonFormField<String>(
-                value: _customerId,
-                decoration: const InputDecoration(labelText: 'Customer *'),
-                items: customersAsync.items
-                    .map(
-                      (CustomerModel c) => DropdownMenuItem(
-                        value: c.id,
-                        child: Text(c.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) =>
-                    _onCustomerChanged(v, customersAsync.items),
-                validator: (v) =>
-                    v == null || v.isEmpty ? 'Select a customer' : null,
-              ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _invoiceNumber,
-              decoration: const InputDecoration(
-                labelText: 'Invoice number (optional)',
-                hintText: 'Auto-generated if blank',
-              ),
-              inputFormatters: [LengthLimitingTextInputFormatter(50)],
-              validator: (v) => AppValidators.maxLength(
-                v,
-                max: 50,
-                field: 'Invoice number',
-              ),
-            ),
-            const SizedBox(height: 12),
-            brandingAsync.when(
-              loading: () => const LinearProgressIndicator(),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (branding) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FromAddressSelector(
-                    branchId: _fromBranchId,
-                    companyAddress: branding.companyAddress,
-                    branches: branding.branchAddresses,
-                    onChanged: (v) => setState(() => _fromBranchId = v),
-                  ),
-                  const SizedBox(height: 16),
-                  PartyAddressEditor(
-                    key: ValueKey('bill_${_billTo.name}_${_billTo.address}'),
-                    title: 'Bill To',
-                    party: _billTo,
-                    onChanged: (p) => setState(() {
-                      _billTo = p;
-                      if (_shipSameAsBill) _shipTo = p;
-                    }),
-                  ),
-                  const SizedBox(height: 16),
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Ship To same as Bill To'),
-                    value: _shipSameAsBill,
-                    onChanged: (v) => setState(() {
-                      _shipSameAsBill = v ?? true;
-                      if (_shipSameAsBill) _shipTo = _billTo;
-                    }),
-                  ),
-                  if (!_shipSameAsBill)
-                    PartyAddressEditor(
-                      key: ValueKey(
-                        'ship_${_shipTo.name}_${_shipTo.address}',
-                      ),
-                      title: 'Ship To',
-                      party: _shipTo,
-                      onChanged: (p) => setState(() => _shipTo = p),
-                    ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-            InvoiceDispatchFields(
-              paymentMode: _paymentMode,
-              motorVehicleNo: _motorVehicleNo,
-              ewayBillNo: _ewayBillNo,
-              onPaymentModeChanged: (v) => setState(() => _paymentMode = v),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _notes,
-              decoration: const InputDecoration(labelText: 'Notes'),
-              maxLines: 2,
-              inputFormatters: [LengthLimitingTextInputFormatter(500)],
-              validator: (v) => AppValidators.maxLength(
-                v,
-                max: 500,
-                field: 'Notes',
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Line items',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () => setState(() => _lines.add(_LineDraft())),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add'),
+                if (customersAsync.isLoading && customersAsync.items.isEmpty)
+                  const LinearProgressIndicator()
+                else
+                  DropdownButtonFormField<String>(
+                    value: _customerId,
+                    decoration: const InputDecoration(labelText: 'Customer *'),
+                    items: customersAsync.items
+                        .map(
+                          (CustomerModel c) => DropdownMenuItem(
+                            value: c.id,
+                            child: Text(c.name),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) =>
+                        _onCustomerChanged(v, customersAsync.items),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Select a customer' : null,
+                  ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _invoiceNumber,
+                  decoration: const InputDecoration(
+                    labelText: 'Invoice number (optional)',
+                    hintText: 'Auto-generated if blank',
+                  ),
+                  inputFormatters: [LengthLimitingTextInputFormatter(50)],
+                  validator: (v) => AppValidators.maxLength(
+                    v,
+                    max: 50,
+                    field: 'Invoice number',
+                  ),
                 ),
+                const SizedBox(height: 16),
+                brandingAsync.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (branding) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FromAddressSelector(
+                        branchId: _fromBranchId,
+                        companyAddress: branding.companyAddress,
+                        branches: branding.branchAddresses,
+                        onChanged: (v) => setState(() => _fromBranchId = v),
+                      ),
+                      const SizedBox(height: 16),
+                      PartyAddressEditor(
+                        key: ValueKey('bill_${_billTo.name}_${_billTo.address}'),
+                        title: 'Bill To',
+                        party: _billTo,
+                        onChanged: (p) => setState(() {
+                          _billTo = p;
+                          if (_shipSameAsBill) _shipTo = p;
+                        }),
+                      ),
+                      const SizedBox(height: 16),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Ship To same as Bill To'),
+                        value: _shipSameAsBill,
+                        onChanged: (v) => setState(() {
+                          _shipSameAsBill = v ?? true;
+                          if (_shipSameAsBill) _shipTo = _billTo;
+                        }),
+                      ),
+                      if (!_shipSameAsBill) ...[
+                        const SizedBox(height: 12),
+                        PartyAddressEditor(
+                          key: ValueKey(
+                            'ship_${_shipTo.name}_${_shipTo.address}',
+                          ),
+                          title: 'Ship To',
+                          party: _shipTo,
+                          onChanged: (p) => setState(() => _shipTo = p),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+                InvoiceDispatchFields(
+                  paymentMode: _paymentMode,
+                  motorVehicleNo: _motorVehicleNo,
+                  ewayBillNo: _ewayBillNo,
+                  onPaymentModeChanged: (v) => setState(() => _paymentMode = v),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _notes,
+                  decoration: const InputDecoration(labelText: 'Notes'),
+                  maxLines: 2,
+                  inputFormatters: [LengthLimitingTextInputFormatter(500)],
+                  validator: (v) => AppValidators.maxLength(
+                    v,
+                    max: 500,
+                    field: 'Notes',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Text('Line items',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => setState(() => _addNewLine()),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                itemsAsync.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (e, _) => Text(cleanError(e)),
+                  data: (approved) => Column(
+                    children: [
+                      for (var i = 0; i < _lines.length; i++)
+                        _buildLineCard(i, approved),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                DocumentTotalsSummary(lines: _lineTotalsInputs()),
+                const SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: _loading ? null : _save,
+                    child: const Text('Create invoice'),
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
-            itemsAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => Text(cleanError(e)),
-              data: (approved) => Column(
-                children: [
-                  for (var i = 0; i < _lines.length; i++)
-                    _buildLineCard(i, approved),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            DocumentTotalsSummary(lines: _lineTotalsInputs()),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _loading ? null : _save,
-              child: const Text('Create invoice'),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -353,24 +388,31 @@ class _InvoiceDirectFormScreenState
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Text('Line ${index + 1}',
                     style: const TextStyle(fontWeight: FontWeight.w600)),
-                const Spacer(),
+                const SizedBox(height: 4),
                 if (_lines.length > 1)
                   IconButton(
                     icon: const Icon(Icons.delete_outline),
                     onPressed: () {
                       setState(() {
-                        _lines.removeAt(index).dispose();
+                        final removed = _lines.removeAt(index);
+                        removed.qty.removeListener(_onLineInputChanged);
+                        removed.price.removeListener(_onLineInputChanged);
+                        removed.gst.removeListener(_onLineInputChanged);
+                        removed.dispose();
                       });
                     },
                   ),
               ],
             ),
+            SizedBox(height: 8),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               value: line.itemId,
               decoration: const InputDecoration(labelText: 'Item *'),
               items: approved
@@ -379,6 +421,8 @@ class _InvoiceDirectFormScreenState
                       value: it.id,
                       child: Text(
                         '${it.name} (${formatInr(it.sellingPrice)}, ${ItemUnits.labelFor(it.unit)}, GST ${it.gstPercent}%)',
+                        maxLines:1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   )
@@ -405,7 +449,7 @@ class _InvoiceDirectFormScreenState
               validator: (v) => v == null ? 'Select item' : null,
             ),
             if (line.itemId != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Builder(
                 builder: (context) {
                   ItemModel? selected;
@@ -434,7 +478,7 @@ class _InvoiceDirectFormScreenState
                 },
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -482,7 +526,7 @@ class _InvoiceDirectFormScreenState
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextFormField(
               controller: line.description,
               decoration: const InputDecoration(labelText: 'Description'),
