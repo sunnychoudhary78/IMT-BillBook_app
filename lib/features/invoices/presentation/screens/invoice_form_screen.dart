@@ -90,21 +90,23 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     }
     _lines
       ..clear()
-      ..addAll(inv.items.map((item) {
-        final line = _LineDraft();
-        line.itemId = item.itemId;
-        line.qty.text = item.quantity.toString();
-        line.price.text = item.unitPrice.toString();
-        line.gst.text = item.gstPercent.toString();
-        line.description.text = item.description ?? '';
-        return line;
-      }));
+      ..addAll(
+        inv.items.map((item) {
+          final line = _LineDraft();
+          line.itemId = item.itemId;
+          line.qty.text = item.quantity.toString();
+          line.price.text = item.unitPrice.toString();
+          line.gst.text = item.gstPercent.toString();
+          line.description.text = item.description ?? '';
+          return line;
+        }),
+      );
     if (_lines.isEmpty) _lines.add(_LineDraft());
     _billTo = inv.billTo ?? PartyAddressModel.fromCustomer(inv.customer);
     _shipTo = inv.shipTo ?? _billTo;
     _fromBranchId = inv.fromBranchId ?? '';
-    _shipSameAsBill = _shipTo.name == _billTo.name &&
-        _shipTo.address == _billTo.address;
+    _shipSameAsBill =
+        _shipTo.name == _billTo.name && _shipTo.address == _billTo.address;
   }
 
   Map<String, dynamic> _fromPartyPayload() {
@@ -122,7 +124,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       stockDeducted: _stockDeducted,
     );
     if (!canEdit) {
-      ref.read(globalLoadingProvider.notifier).showError(
+      ref
+          .read(globalLoadingProvider.notifier)
+          .showError(
             _status == 'pending_approval'
                 ? 'Only approvers can edit invoices pending approval'
                 : 'This invoice cannot be edited',
@@ -175,7 +179,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     ref.read(globalLoadingProvider.notifier).showLoading('Updating invoice...');
 
     try {
-      await ref.read(invoiceRepositoryProvider).update(
+      await ref
+          .read(invoiceRepositoryProvider)
+          .update(
             id: widget.invoiceId,
             items: items,
             notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
@@ -228,7 +234,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                 stockDeducted: inv.stockDeducted,
               );
               if (!allowed) {
-                ref.read(globalLoadingProvider.notifier).showError(
+                ref
+                    .read(globalLoadingProvider.notifier)
+                    .showError(
                       inv.status == 'pending_approval'
                           ? 'Only approvers can edit invoices pending approval'
                           : 'This invoice cannot be edited',
@@ -269,7 +277,8 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         key: _formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          // Extra bottom padding di hai taaki content button ke peeche na chhupe
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
             if (_customerName != null)
               ListTile(
@@ -310,9 +319,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                   ),
                   if (!_shipSameAsBill)
                     PartyAddressEditor(
-                      key: ValueKey(
-                        'ship_${_shipTo.name}_${_shipTo.address}',
-                      ),
+                      key: ValueKey('ship_${_shipTo.name}_${_shipTo.address}'),
                       title: 'Ship To',
                       party: _shipTo,
                       onChanged: (p) => setState(() => _shipTo = p),
@@ -326,11 +333,8 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
               decoration: const InputDecoration(labelText: 'Notes'),
               maxLines: 2,
               inputFormatters: [LengthLimitingTextInputFormatter(500)],
-              validator: (v) => AppValidators.maxLength(
-                v,
-                max: 500,
-                field: 'Notes',
-              ),
+              validator: (v) =>
+                  AppValidators.maxLength(v, max: 500, field: 'Notes'),
             ),
             const SizedBox(height: 16),
             InvoiceDispatchFields(
@@ -369,12 +373,20 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             ),
             const SizedBox(height: 16),
             DocumentTotalsSummary(lines: _lineTotalsInputs()),
-            const SizedBox(height: 24),
-            FilledButton(
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton(
               onPressed: _loading ? null : _save,
               child: const Text('Update'),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -408,6 +420,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             ),
             DropdownButtonFormField<String>(
               value: line.itemId,
+              isExpanded: true,
               decoration: const InputDecoration(labelText: 'Item *'),
               items: approved
                   .map(
@@ -493,11 +506,8 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
               controller: line.description,
               decoration: const InputDecoration(labelText: 'Description'),
               inputFormatters: [LengthLimitingTextInputFormatter(250)],
-              validator: (v) => AppValidators.maxLength(
-                v,
-                max: 250,
-                field: 'Description',
-              ),
+              validator: (v) =>
+                  AppValidators.maxLength(v, max: 250, field: 'Description'),
             ),
           ],
         ),
