@@ -387,6 +387,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
       title: 'Reject invoice',
       hint: 'Reason for rejection',
     );
+    if (!context.mounted) return;
     if (reason == null || reason.isEmpty) return;
     ref.read(globalLoadingProvider.notifier).showLoading('Rejecting...');
     try {
@@ -395,6 +396,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
       ref.read(globalLoadingProvider.notifier).showSuccess('Rejected');
       ref.invalidate(invoiceDetailProvider(invoiceId));
       ref.invalidate(pendingInvoicesProvider);
+      ref.invalidate(invoiceListProvider);
     } catch (e) {
       ref.read(globalLoadingProvider.notifier).hide();
       ref.read(globalLoadingProvider.notifier).showApiError(e);

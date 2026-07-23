@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum GlobalOverlayState { idle, loading, success, error, message }
@@ -29,53 +30,87 @@ class GlobalLoadingState {
 
 class GlobalLoadingNotifier extends Notifier<GlobalLoadingState> {
   Timer? _timer;
+  int _generation = 0;
 
   @override
-  GlobalLoadingState build() => const GlobalLoadingState.idle();
+  GlobalLoadingState build() {
+    ref.onDispose(() {
+      _timer?.cancel();
+      _timer = null;
+    });
+    return const GlobalLoadingState.idle();
+  }
+
+  /// Defer overlay mutations one frame so they never race modal route teardown
+  /// (InheritedWidget descendant assertion during bottom-sheet pop).
+  void _runNextFrame(void Function(int gen) apply) {
+    final gen = ++_generation;
+    _cancelTimer();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (gen != _generation) return;
+      apply(gen);
+    });
+  }
 
   void showLoading([String message = 'Please wait...']) {
-    _cancelTimer();
-    state = GlobalLoadingState(
-      state: GlobalOverlayState.loading,
-      message: message,
-    );
+    _runNextFrame((_) {
+      state = GlobalLoadingState(
+        state: GlobalOverlayState.loading,
+        message: message,
+      );
+    });
   }
 
   void showSuccess(
     String message, {
     Duration duration = const Duration(seconds: 2),
   }) {
-    _cancelTimer();
-    state = GlobalLoadingState(
-      state: GlobalOverlayState.success,
-      message: message,
-    );
-    _timer = Timer(duration, _hideInternal);
+    _runNextFrame((gen) {
+      state = GlobalLoadingState(
+        state: GlobalOverlayState.success,
+        message: message,
+      );
+      _timer = Timer(duration, () {
+        if (gen != _generation) return;
+        _hideInternal();
+      });
+    });
   }
 
   void showError(
     String message, {
     Duration duration = const Duration(seconds: 3),
   }) {
-    _cancelTimer();
     final msg = message
         .replaceFirst('Exception:', '')
         .replaceFirst('Exception: ', '')
         .trim();
-    state = GlobalLoadingState(state: GlobalOverlayState.error, message: msg);
-    _timer = Timer(duration, _hideInternal);
+    _runNextFrame((gen) {
+      state = GlobalLoadingState(
+        state: GlobalOverlayState.error,
+        message: msg,
+      );
+      _timer = Timer(duration, () {
+        if (gen != _generation) return;
+        _hideInternal();
+      });
+    });
   }
 
   void showMessage(
     String message, {
     Duration duration = const Duration(seconds: 2),
   }) {
-    _cancelTimer();
-    state = GlobalLoadingState(
-      state: GlobalOverlayState.message,
-      message: message,
-    );
-    _timer = Timer(duration, _hideInternal);
+    _runNextFrame((gen) {
+      state = GlobalLoadingState(
+        state: GlobalOverlayState.message,
+        message: message,
+      );
+      _timer = Timer(duration, () {
+        if (gen != _generation) return;
+        _hideInternal();
+      });
+    });
   }
 
   void showApiError(Object e) {
@@ -84,11 +119,11 @@ class GlobalLoadingNotifier extends Notifier<GlobalLoadingState> {
   }
 
   void hide() {
-    _cancelTimer();
-    _hideInternal();
+    _runNextFrame((_) => _hideInternal());
   }
 
   void reset() {
+    _generation++;
     _cancelTimer();
     state = const GlobalLoadingState.idle();
   }

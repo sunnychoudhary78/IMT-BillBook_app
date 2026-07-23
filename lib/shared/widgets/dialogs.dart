@@ -44,15 +44,39 @@ Future<String?> showReasonSheet(
   BuildContext context, {
   required String title,
   String hint = 'Enter reason',
-}) async {
-  final controller = TextEditingController();
-  final formKey = GlobalKey<FormState>();
+}) {
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
-    builder: (context) {
-      final scheme = Theme.of(context).colorScheme;
-      return Padding(
+    builder: (context) => _ReasonSheetBody(title: title, hint: hint),
+  );
+}
+
+class _ReasonSheetBody extends StatefulWidget {
+  final String title;
+  final String hint;
+
+  const _ReasonSheetBody({required this.title, required this.hint});
+
+  @override
+  State<_ReasonSheetBody> createState() => _ReasonSheetBodyState();
+}
+
+class _ReasonSheetBodyState extends State<_ReasonSheetBody> {
+  final _controller = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Padding(
         padding: EdgeInsets.only(
           left: AppSpacing.md,
           right: AppSpacing.md,
@@ -60,14 +84,14 @@ Future<String?> showReasonSheet(
           bottom: MediaQuery.viewInsetsOf(context).bottom + AppSpacing.md,
         ),
         child: Form(
-          key: formKey,
+          key: _formKey,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                title,
+                widget.title,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -79,11 +103,11 @@ Future<String?> showReasonSheet(
               ),
               const SizedBox(height: AppSpacing.md),
               TextFormField(
-                controller: controller,
+                controller: _controller,
                 autofocus: true,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: hint,
+                  hintText: widget.hint,
                   labelText: 'Reason',
                 ),
                 inputFormatters: [LengthLimitingTextInputFormatter(500)],
@@ -98,17 +122,17 @@ Future<String?> showReasonSheet(
               const SizedBox(height: AppSpacing.md),
               FilledButton(
                 onPressed: () {
-                  if (!formKey.currentState!.validate()) return;
-                  Navigator.pop(context, controller.text.trim());
+                  if (!(_formKey.currentState?.validate() ?? false)) return;
+                  Navigator.pop(context, _controller.text.trim());
                 },
                 child: const Text('Submit'),
               ),
             ],
           ),
         ),
-      );
-    },
-  ).whenComplete(controller.dispose);
+      ),
+    );
+  }
 }
 
 /// Blocking dialog when no active warehouses exist for approve / stock moves.

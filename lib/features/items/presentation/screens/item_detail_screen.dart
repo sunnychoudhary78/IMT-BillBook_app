@@ -194,6 +194,7 @@ class ItemDetailScreen extends ConsumerWidget {
       title: 'Reject item',
       hint: 'Reason for rejection',
     );
+    if (!context.mounted) return;
     if (reason == null || reason.isEmpty) return;
     ref.read(globalLoadingProvider.notifier).showLoading('Rejecting...');
     try {
@@ -202,6 +203,7 @@ class ItemDetailScreen extends ConsumerWidget {
       ref.read(globalLoadingProvider.notifier).showSuccess('Item rejected');
       ref.invalidate(itemDetailProvider(itemId));
       ref.invalidate(pendingItemsProvider);
+      ref.invalidate(itemListProvider);
     } catch (e) {
       ref.read(globalLoadingProvider.notifier).hide();
       ref.read(globalLoadingProvider.notifier).showApiError(e);

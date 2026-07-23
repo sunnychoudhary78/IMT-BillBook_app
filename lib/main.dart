@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:solar_erp_app/app/app_routes.dart';
 import 'package:solar_erp_app/app/navigator.dart';
-import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
 import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/core/theme/app_theme_provider.dart';
 import 'package:solar_erp_app/core/theme/theme_mode_provider.dart';
@@ -71,16 +70,7 @@ class MyApp extends ConsumerWidget {
       initialRoute: '/',
       routes: AppRoutes.routes,
       builder: (context, child) {
-        final overlay = ref.watch(globalLoadingProvider);
-        return Stack(
-          children: [
-            child!,
-            if (overlay.isLoading) GlobalLoader(message: overlay.message),
-            if (overlay.isSuccess) GlobalSuccess(message: overlay.message),
-            if (overlay.isError) GlobalError(message: overlay.message),
-            if (overlay.isMessage) GlobalMessage(message: overlay.message),
-          ],
-        );
+        return GlobalOverlayHost(child: child);
       },
     );
   }

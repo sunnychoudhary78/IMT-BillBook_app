@@ -2,8 +2,33 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
 import 'package:solar_erp_app/core/theme/app_design.dart';
+
+/// Hosts global loading/toast overlays above the navigator without replacing
+/// the navigator child when overlay state changes.
+class GlobalOverlayHost extends ConsumerWidget {
+  final Widget? child;
+
+  const GlobalOverlayHost({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final overlay = ref.watch(globalLoadingProvider);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (child != null) child!,
+        if (overlay.isLoading) GlobalLoader(message: overlay.message),
+        if (overlay.isSuccess) GlobalSuccess(message: overlay.message),
+        if (overlay.isError) GlobalError(message: overlay.message),
+        if (overlay.isMessage) GlobalMessage(message: overlay.message),
+      ],
+    );
+  }
+}
 
 class GlobalLoader extends StatelessWidget {
   final String message;

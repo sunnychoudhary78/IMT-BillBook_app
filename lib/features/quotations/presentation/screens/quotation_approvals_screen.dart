@@ -182,6 +182,7 @@ class QuotationApprovalsScreen extends ConsumerWidget {
       title: 'Reject quotation',
       hint: 'Reason for rejection',
     );
+    if (!context.mounted) return;
     if (reason == null || reason.isEmpty) return;
     ref.read(globalLoadingProvider.notifier).showLoading('Rejecting...');
     try {

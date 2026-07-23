@@ -302,6 +302,7 @@ class _InvoiceApprovalsScreenState
       title: 'Reject invoice',
       hint: 'Reason for rejection',
     );
+    if (!mounted) return;
     if (reason == null || reason.isEmpty) return;
     ref.read(globalLoadingProvider.notifier).showLoading('Rejecting...');
     try {

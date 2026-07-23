@@ -170,6 +170,7 @@ class ItemApprovalsScreen extends ConsumerWidget {
       title: 'Reject item',
       hint: 'Reason for rejection',
     );
+    if (!context.mounted) return;
     if (reason == null || reason.isEmpty) return;
     ref.read(globalLoadingProvider.notifier).showLoading('Rejecting...');
     try {
