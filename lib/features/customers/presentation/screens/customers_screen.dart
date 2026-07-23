@@ -7,6 +7,7 @@ import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/paginated_list_view.dart';
 import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
+import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
 
 import '../providers/customer_providers.dart';
 
@@ -71,94 +72,31 @@ class CustomersScreen extends ConsumerWidget {
                             ref.read(customerListProvider.notifier).refresh(),
                         onLoadMore: () =>
                             ref.read(customerListProvider.notifier).loadMore(),
-                        empty: const EmptyState(
+                        empty: const PremiumEmptyState(
                           title: 'No customers found',
                           subtitle: 'Add a customer to get started',
                           icon: Icons.people_outline,
                         ),
-                        itemBuilder: (context, customer, _) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.lg),
-                                onTap: () async {
-                                  final result = await Navigator.pushNamed(
-                                    context,
-                                    '/customers/form',
-                                    arguments: customer.id,
-                                  );
-                                  if (result == true) {
-                                    ref
-                                        .read(customerListProvider.notifier)
-                                        .refresh();
-                                  }
-                                },
-                                child: PremiumCard(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 12,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 42,
-                                        height: 42,
-                                        decoration: BoxDecoration(
-                                          color: scheme.primary
-                                              .withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(
-                                            AppRadius.md,
-                                          ),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          customer.name.isNotEmpty
-                                              ? customer.name[0].toUpperCase()
-                                              : '?',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                            color: scheme.primary,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              customer.name,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              customer.subtitle.isEmpty
-                                                  ? 'No contact info'
-                                                  : customer.subtitle,
-                                              style: TextStyle(
-                                                color: scheme.onSurfaceVariant,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.chevron_right,
-                                        color: scheme.onSurfaceVariant,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
+                        itemBuilder: (context, customer, index) {
+                          return DocumentListTile(
+                            title: customer.name,
+                            subtitle: customer.subtitle.isEmpty
+                                ? 'No contact info'
+                                : customer.subtitle,
+                            leadingLabel: customer.name,
+                            onTap: () async {
+                              final result = await Navigator.pushNamed(
+                                context,
+                                '/customers/form',
+                                arguments: customer.id,
+                              );
+                              if (result == true) {
+                                ref
+                                    .read(customerListProvider.notifier)
+                                    .refresh();
+                              }
+                            },
+                          ).appFadeSlide(index: index);
                         },
                       ),
           ),

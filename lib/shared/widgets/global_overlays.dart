@@ -1,4 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+import 'package:solar_erp_app/core/theme/app_design.dart';
 
 class GlobalLoader extends StatelessWidget {
   final String message;
@@ -6,21 +11,48 @@ class GlobalLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: Colors.black45,
-      child: Center(
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+      color: Colors.black.withValues(alpha: 0.35),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.all(AppSpacing.lg),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            decoration: BoxDecoration(
+              color: scheme.surface.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+              boxShadow: AppShadows.floating(scheme),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text(message),
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: scheme.primary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  message,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
               ],
             ),
-          ),
+          ).animate().fadeIn(duration: AppMotion.fast).scale(
+                begin: const Offset(0.94, 0.94),
+                duration: AppMotion.normal,
+                curve: AppMotion.easeOut,
+              ),
         ),
       ),
     );
@@ -34,8 +66,8 @@ class GlobalSuccess extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ToastBanner(
-      icon: Icons.check_circle,
-      color: Colors.green.shade700,
+      icon: Icons.check_circle_rounded,
+      color: const Color(0xFF059669),
       message: message,
     );
   }
@@ -48,8 +80,8 @@ class GlobalError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ToastBanner(
-      icon: Icons.error,
-      color: Colors.red.shade700,
+      icon: Icons.error_rounded,
+      color: Theme.of(context).colorScheme.error,
       message: message,
     );
   }
@@ -62,7 +94,7 @@ class GlobalMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _ToastBanner(
-      icon: Icons.info,
+      icon: Icons.info_rounded,
       color: Theme.of(context).colorScheme.primary,
       message: message,
     );
@@ -82,32 +114,52 @@ class _ToastBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       child: Align(
         alignment: Alignment.topCenter,
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Material(
-            elevation: 6,
-            borderRadius: BorderRadius.circular(12),
-            color: color,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, color: Colors.white),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      message,
-                      style: const TextStyle(color: Colors.white),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Material(
+                color: color.withValues(alpha: 0.92),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: scheme.surface.withValues(alpha: 0.2),
                     ),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, color: Colors.white, size: 22),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          message,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+          )
+              .animate()
+              .fadeIn(duration: AppMotion.fast)
+              .slideY(begin: -0.25, duration: AppMotion.normal, curve: AppMotion.easeOut),
         ),
       ),
     );

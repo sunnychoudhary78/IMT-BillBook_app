@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
-import 'package:solar_erp_app/core/widgets/status_badge.dart';
+import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/shared/constants/item_categories.dart';
 import 'package:solar_erp_app/shared/utils/formatters.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/dialogs.dart';
+import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
+import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
 
 import '../providers/item_providers.dart';
 
@@ -17,8 +19,10 @@ class ItemApprovalsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(pendingItemsProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      backgroundColor: scheme.surfaceContainerLowest,
       appBar: const AppAppBar(title: 'Item Approvals'),
       body: async.when(
         loading: () => const LoadingState(),
@@ -31,12 +35,13 @@ class ItemApprovalsScreen extends ConsumerWidget {
             return RefreshIndicator(
               onRefresh: () async => ref.invalidate(pendingItemsProvider),
               child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
-                  SizedBox(height: 120),
-                  EmptyState(
+                  SizedBox(height: 80),
+                  PremiumEmptyState(
+                    icon: Icons.verified_outlined,
                     title: 'No pending items',
                     subtitle: 'All caught up',
-                    icon: Icons.verified_outlined,
                   ),
                 ],
               ),
@@ -45,77 +50,83 @@ class ItemApprovalsScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(pendingItemsProvider),
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
+            child: ListView.builder(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.sm,
+                bottom: AppSpacing.lg,
+              ),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final item = items[index];
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                            StatusBadge.forStatus(item.status),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          [
-                            if (item.category != null)
-                              ItemCategories.labelFor(item.category),
-                            if (item.sku != null) 'SKU: ${item.sku}',
-                            formatInr(item.sellingPrice),
-                          ].join(' · '),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton(
-                                onPressed: () => _approve(context, ref, item.id),
-                                child: const Text('Approve'),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _reject(context, ref, item.id),
-                                child: const Text('Reject'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            final result = await Navigator.pushNamed(
-                              context,
-                              '/items/form',
-                              arguments: item.id,
-                            );
-                            if (result == true) {
-                              ref.invalidate(pendingItemsProvider);
-                              ref.invalidate(itemListProvider);
-                            }
-                          },
-                          child: const Text('Edit'),
-                        ),
-                      ],
-                    ),
+                final subtitle = [
+                  if (item.category != null)
+                    ItemCategories.labelFor(item.category),
+                  if (item.sku != null) 'SKU: ${item.sku}',
+                  formatInr(item.sellingPrice),
+                ].join(' · ');
+
+                return PremiumCard(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs + 2,
                   ),
-                );
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          PremiumStatusPill.forStatus(context, item.status),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(color: scheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () => _approve(context, ref, item.id),
+                              child: const Text('Approve'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _reject(context, ref, item.id),
+                              child: const Text('Reject'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final result = await Navigator.pushNamed(
+                            context,
+                            '/items/form',
+                            arguments: item.id,
+                          );
+                          if (result == true) {
+                            ref.invalidate(pendingItemsProvider);
+                            ref.invalidate(itemListProvider);
+                          }
+                        },
+                        child: const Text('Edit'),
+                      ),
+                    ],
+                  ),
+                ).appFadeSlide(index: index);
               },
             ),
           );

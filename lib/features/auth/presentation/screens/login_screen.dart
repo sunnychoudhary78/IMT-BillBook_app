@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/shared/utils/validators.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
+import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
 
 import '../providers/auth_provider.dart';
 
@@ -57,145 +58,185 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final cardRadius = _isIOS ? AppRadius.md + 4 : 24.0;
 
     return Scaffold(
-      backgroundColor: scheme.surface,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            physics: _isIOS
-                ? const BouncingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics(),
-                  )
-                : const ClampingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.lg,
-            ),
-            child: Container(
-              width: cardWidth,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: AppSpacing.xl,
-              ),
-              decoration: BoxDecoration(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(cardRadius),
-                boxShadow: [
-                  BoxShadow(
-                    color: scheme.shadow.withValues(
-                      alpha: _isIOS ? 0.05 : 0.08,
-                    ),
-                    blurRadius: _isIOS ? 18 : 30,
-                    offset: Offset(0, _isIOS ? 10 : 15),
-                  ),
-                ],
-                border: Border.all(
-                  color: scheme.outline.withValues(alpha: 0.08),
-                ),
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: SizedBox(
-                        height: 110,
-                        child: Image.asset(
-                          'assets/logo/logo.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 400.ms)
-                        .scale(
-                          begin: const Offset(0.85, 0.85),
-                          end: const Offset(1, 1),
-                          curve: Curves.easeOutBack,
-                        ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'IMT-BillBook',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                      ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 400.ms)
-                        .slideY(begin: 0.15, end: 0),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Sign in to manage sales & inventory',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
-                    const SizedBox(height: AppSpacing.xl),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      autofillHints: const [AutofillHints.username],
-                      decoration: const InputDecoration(
-                        labelText: 'Email or payroll code',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      validator: AppValidators.loginIdentifier,
-                    )
-                        .animate()
-                        .fadeIn(delay: 250.ms)
-                        .slideX(begin: -0.06, end: 0),
-                    const SizedBox(height: AppSpacing.md),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscure,
-                      textInputAction: TextInputAction.done,
-                      autofillHints: const [AutofillHints.password],
-                      onFieldSubmitted: (_) => _submit(),
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          onPressed: () =>
-                              setState(() => _obscure = !_obscure),
-                          icon: Icon(
-                            _obscure
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                        ),
-                      ),
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      validator: AppValidators.password,
-                    )
-                        .animate()
-                        .fadeIn(delay: 350.ms)
-                        .slideX(begin: 0.06, end: 0),
-                    const SizedBox(height: AppSpacing.lg),
-                    FilledButton(
-                      onPressed: _submitting ? null : _submit,
-                      child: _submitting
-                          ? SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: scheme.onPrimary,
-                              ),
-                            )
-                          : const Text('Sign in'),
-                    ).animate().fadeIn(delay: 450.ms).slideY(begin: 0.1, end: 0),
-                  ],
-                ),
-              ),
-            ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              scheme.primary.withValues(alpha: 0.12),
+              scheme.surface,
+              scheme.secondaryContainer.withValues(alpha: 0.35),
+            ],
           ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -80,
+              right: -60,
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.primary.withValues(alpha: 0.10),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -40,
+              left: -50,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.tertiary.withValues(alpha: 0.08),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  physics: _isIOS
+                      ? const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
+                        )
+                      : const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.lg,
+                  ),
+                  child: Container(
+                    width: cardWidth,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: AppSpacing.xl,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.surface.withValues(alpha: 0.94),
+                      borderRadius: BorderRadius.circular(cardRadius),
+                      boxShadow: AppShadows.header(scheme),
+                      border: Border.all(
+                        color: scheme.outlineVariant.withValues(alpha: 0.55),
+                      ),
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: SizedBox(
+                              height: 110,
+                              child: Image.asset(
+                                'assets/logo/logo.png',
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          )
+                              .animate()
+                              .fadeIn(duration: 400.ms)
+                              .scale(
+                                begin: const Offset(0.85, 0.85),
+                                end: const Offset(1, 1),
+                                curve: Curves.easeOutBack,
+                              ),
+                          const SizedBox(height: AppSpacing.lg),
+                          Text(
+                            'IMT-BillBook',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.4,
+                            ),
+                          )
+                              .animate()
+                              .fadeIn(duration: 400.ms)
+                              .slideY(begin: 0.15, end: 0),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            'Sign in to manage sales & inventory',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
+                          const SizedBox(height: AppSpacing.xl),
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.username],
+                            decoration: const InputDecoration(
+                              labelText: 'Email or payroll code',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: AppValidators.loginIdentifier,
+                          )
+                              .animate()
+                              .fadeIn(delay: 250.ms)
+                              .slideX(begin: -0.06, end: 0),
+                          const SizedBox(height: AppSpacing.md),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscure,
+                            textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.password],
+                            onFieldSubmitted: (_) => _submit(),
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                              ),
+                            ),
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: AppValidators.password,
+                          )
+                              .animate()
+                              .fadeIn(delay: 350.ms)
+                              .slideX(begin: 0.06, end: 0),
+                          const SizedBox(height: AppSpacing.lg),
+                          FilledButton(
+                            onPressed: _submitting ? null : _submit,
+                            child: _submitting
+                                ? SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: scheme.onPrimary,
+                                    ),
+                                  )
+                                : const Text('Sign in'),
+                          )
+                              .animate()
+                              .fadeIn(delay: 450.ms)
+                              .slideY(begin: 0.1, end: 0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -238,38 +279,62 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: const AppAppBar(title: 'Change password'),
       body: Form(
         key: _formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
           children: [
-            TextFormField(
-              controller: _current,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Current password'),
-              validator: (v) => AppValidators.required(v, 'Current password'),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                children: [
+                  FormSectionCard(
+                    title: 'Security',
+                    subtitle: 'Choose a strong password you have not used before.',
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _current,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Current password',
+                            prefixIcon: Icon(Icons.lock_outline),
+                          ),
+                          validator: (v) =>
+                              AppValidators.required(v, 'Current password'),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        TextFormField(
+                          controller: _next,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'New password',
+                            prefixIcon: Icon(Icons.lock_reset_outlined),
+                          ),
+                          validator: AppValidators.password,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        TextFormField(
+                          controller: _confirm,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Confirm password',
+                            prefixIcon: Icon(Icons.verified_user_outlined),
+                          ),
+                          validator: (v) =>
+                              AppValidators.confirmPassword(v, _next.text),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _next,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'New password'),
-              validator: AppValidators.password,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _confirm,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirm password'),
-              validator: (v) =>
-                  AppValidators.confirmPassword(v, _next.text),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            FilledButton(
-              onPressed: _submit,
-              child: const Text('Update password'),
+            StickyFormActions(
+              primaryLabel: 'Update password',
+              onPrimary: _submit,
             ),
           ],
         ),

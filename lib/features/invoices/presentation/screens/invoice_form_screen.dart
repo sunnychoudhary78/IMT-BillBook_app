@@ -49,6 +49,7 @@ class InvoiceFormScreen extends ConsumerStatefulWidget {
 class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notes = TextEditingController();
+  final _invoiceNumberCtrl = TextEditingController();
   final _motorVehicleNo = TextEditingController();
   final _ewayBillNo = TextEditingController();
   final List<_LineDraft> _lines = [];
@@ -68,6 +69,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   @override
   void dispose() {
     _notes.dispose();
+    _invoiceNumberCtrl.dispose();
     _motorVehicleNo.dispose();
     _ewayBillNo.dispose();
     for (final l in _lines) {
@@ -79,6 +81,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   void _fill(InvoiceModel inv) {
     _status = inv.status;
     _invoiceNumber = inv.invoiceNumber;
+    _invoiceNumberCtrl.text = inv.invoiceNumber;
     _customerName = inv.customerName;
     _stockDeducted = inv.stockDeducted;
     _paymentMode = inv.paymentMode;
@@ -185,6 +188,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             id: widget.invoiceId,
             items: items,
             notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+            invoiceNumber: _invoiceNumberCtrl.text.trim().isEmpty
+                ? null
+                : _invoiceNumberCtrl.text.trim(),
             paymentMode: _paymentMode,
             motorVehicleNo: _motorVehicleNo.text.trim().isEmpty
                 ? null
@@ -286,6 +292,21 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                 title: const Text('Customer'),
                 subtitle: Text(_customerName!),
               ),
+            TextFormField(
+              controller: _invoiceNumberCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Invoice number',
+                hintText: 'Leave blank to keep auto number',
+              ),
+              inputFormatters: [LengthLimitingTextInputFormatter(50)],
+              validator: (v) => AppValidators.maxLength(
+                v,
+                max: 50,
+                field: 'Invoice number',
+              ),
+              onChanged: (v) => setState(() => _invoiceNumber = v.trim()),
+            ),
+            const SizedBox(height: 16),
             brandingAsync.when(
               loading: () => const LinearProgressIndicator(),
               error: (_, __) => const SizedBox.shrink(),

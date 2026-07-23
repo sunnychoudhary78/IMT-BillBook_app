@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:solar_erp_app/core/theme/app_design.dart';
+import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
+
 class StatusBadge extends StatelessWidget {
   final String label;
   final Color color;
@@ -7,52 +10,33 @@ class StatusBadge extends StatelessWidget {
   const StatusBadge({super.key, required this.label, required this.color});
 
   factory StatusBadge.forStatus(String status) {
-    final normalized = status.toLowerCase();
+    // Color resolved at build time via PremiumStatusPill when possible;
+    // keep factory API for call sites that pass status without context.
     late Color color;
-    late String label;
-
+    final normalized = status.toLowerCase();
     switch (normalized) {
       case 'draft':
         color = Colors.blueGrey;
-        label = 'Draft';
       case 'pending':
       case 'pending_approval':
-        color = Colors.orange;
-        label = normalized == 'pending' ? 'Pending' : 'Pending Approval';
+        color = const Color(0xFFD97706);
       case 'approved':
-        color = Colors.green;
-        label = 'Approved';
+        color = const Color(0xFF059669);
       case 'sent':
-        color = Colors.teal;
-        label = 'Sent';
+        color = const Color(0xFF0F766E);
       case 'rejected':
         color = Colors.red;
-        label = 'Rejected';
       default:
         color = Colors.grey;
-        label = status;
     }
-
-    return StatusBadge(label: label, color: color);
+    return StatusBadge(
+      label: AppStatusColors.labelFor(status),
+      color: color,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
+    return PremiumStatusPill(label: label, color: color);
   }
 }

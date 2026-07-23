@@ -157,15 +157,22 @@ void main() {
         expect(req.data, {
           'quotationId': 'q1',
           'notes': 'N1',
+          'invoiceNumber': 'INV-CUSTOM-1',
+          'paymentMode': 'UPI',
+          'motorVehicleNo': 'MH12AB1234',
+          'ewayBillNo': 'EWB1',
           'shipSameAsBill': true,
         });
         return {
           'id': 'inv1',
-          'invoice_number': 'INV-1',
+          'invoice_number': 'INV-CUSTOM-1',
           'quotation_id': 'q1',
           'customer_id': 'c1',
           'status': 'draft',
           'stock_deducted': false,
+          'payment_mode': 'UPI',
+          'motor_vehicle_no': 'MH12AB1234',
+          'eway_bill_no': 'EWB1',
           'items': [],
         };
       });
@@ -173,9 +180,15 @@ void main() {
       final inv = await repo.createFromQuotation(
         quotationId: 'q1',
         notes: 'N1',
+        invoiceNumber: 'INV-CUSTOM-1',
+        paymentMode: 'UPI',
+        motorVehicleNo: 'MH12AB1234',
+        ewayBillNo: 'EWB1',
       );
       expect(inv.status, 'draft');
       expect(inv.stockDeducted, isFalse);
+      expect(inv.invoiceNumber, 'INV-CUSTOM-1');
+      expect(inv.paymentMode, 'UPI');
     });
 
     test('submit → pending_approval', () async {

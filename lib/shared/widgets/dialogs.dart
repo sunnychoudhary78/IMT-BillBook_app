@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/shared/utils/validators.dart';
 
 Future<bool> showConfirmDialog(
@@ -11,11 +12,16 @@ Future<bool> showConfirmDialog(
   String cancelLabel = 'Cancel',
   bool isDestructive = false,
 }) async {
+  final scheme = Theme.of(context).colorScheme;
   final result = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(title),
-      content: Text(message),
+      content: Text(
+        message,
+        style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
@@ -23,7 +29,7 @@ Future<bool> showConfirmDialog(
         ),
         FilledButton(
           style: isDestructive
-              ? FilledButton.styleFrom(backgroundColor: Colors.red)
+              ? FilledButton.styleFrom(backgroundColor: scheme.error)
               : null,
           onPressed: () => Navigator.pop(context, true),
           child: Text(confirmLabel),
@@ -45,12 +51,13 @@ Future<String?> showReasonSheet(
     context: context,
     isScrollControlled: true,
     builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
       return Padding(
         padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.viewInsetsOf(context).bottom + 16,
+          left: AppSpacing.md,
+          right: AppSpacing.md,
+          top: AppSpacing.sm,
+          bottom: MediaQuery.viewInsetsOf(context).bottom + AppSpacing.md,
         ),
         child: Form(
           key: formKey,
@@ -59,13 +66,26 @@ Future<String?> showReasonSheet(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Please provide a clear reason for this action.',
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 controller: controller,
                 autofocus: true,
                 maxLines: 3,
-                decoration: InputDecoration(hintText: hint, labelText: 'Reason'),
+                decoration: InputDecoration(
+                  hintText: hint,
+                  labelText: 'Reason',
+                ),
                 inputFormatters: [LengthLimitingTextInputFormatter(500)],
                 validator: (v) => AppValidators.maxLength(
                   v,
@@ -75,7 +95,7 @@ Future<String?> showReasonSheet(
                   required: true,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
               FilledButton(
                 onPressed: () {
                   if (!formKey.currentState!.validate()) return;

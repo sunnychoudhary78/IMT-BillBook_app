@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:solar_erp_app/app/app_routes.dart';
 import 'package:solar_erp_app/app/navigator.dart';
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
+import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/core/theme/app_theme_provider.dart';
 import 'package:solar_erp_app/core/theme/theme_mode_provider.dart';
 import 'package:solar_erp_app/shared/widgets/global_overlays.dart';
@@ -92,50 +93,136 @@ class MyApp extends ConsumerWidget {
     final baseText = brightness == Brightness.dark
         ? ThemeData(brightness: Brightness.dark).textTheme
         : ThemeData(brightness: Brightness.light).textTheme;
+    final radius = BorderRadius.circular(AppRadius.lg);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       textTheme: GoogleFonts.plusJakartaSansTextTheme(baseText),
-      scaffoldBackgroundColor:
-          brightness == Brightness.light ? const Color(0xFFF4F7F6) : null,
+      scaffoldBackgroundColor: brightness == Brightness.light
+          ? const Color(0xFFF4F7F6)
+          : scheme.surface,
+      appBarTheme: AppBarTheme(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: scheme.surface.withValues(alpha: 0.85),
+        foregroundColor: scheme.onSurface,
+        titleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: scheme.onSurface,
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
+        fillColor: scheme.surfaceContainerLowest,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: radius,
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderRadius: radius,
+          borderSide: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.75),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: radius,
           borderSide: BorderSide(color: scheme.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: radius,
+          borderSide: BorderSide(color: scheme.error),
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: scheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(borderRadius: radius),
         margin: EdgeInsets.zero,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: radius),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: radius),
         ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: radius),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        elevation: 2,
+        highlightElevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+        ),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+        labelStyle: GoogleFonts.plusJakartaSans(
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        elevation: 0,
+        height: 72,
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.primaryContainer,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? scheme.primary : scheme.onSurfaceVariant,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            size: 24,
+            color: selected ? scheme.primary : scheme.onSurfaceVariant,
+          );
+        }),
+      ),
+      dialogTheme: DialogThemeData(
+        elevation: 0,
+        backgroundColor: scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+        titleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: scheme.onSurface,
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.surface,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+        ),
+        showDragHandle: true,
+      ),
+      dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant.withValues(alpha: 0.5),
+        thickness: 1,
+        space: 1,
       ),
     );
   }

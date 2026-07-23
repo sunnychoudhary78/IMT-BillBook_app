@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
-import 'package:solar_erp_app/core/widgets/status_badge.dart';
+import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:solar_erp_app/features/inventory/presentation/providers/inventory_providers.dart';
 import 'package:solar_erp_app/shared/utils/document_workflow.dart';
@@ -13,6 +13,8 @@ import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/dialogs.dart';
 import 'package:solar_erp_app/shared/widgets/document_totals_summary.dart';
+import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
+import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
 
 import '../../data/models/invoice_model.dart';
 import '../providers/invoice_providers.dart';
@@ -26,6 +28,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(invoiceDetailProvider(invoiceId));
     final auth = ref.watch(authProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return async.when(
       loading: () => const Scaffold(body: LoadingState()),
@@ -48,99 +51,168 @@ class InvoiceDetailScreen extends ConsumerWidget {
         );
         final isPending =
             DocumentWorkflow.canApproveOrRejectInvoice(inv.status);
+        final canDownload = DocumentWorkflow.canDownloadInvoice(inv.status);
+        final canEmail = DocumentWorkflow.canEmailInvoice(inv.status);
+
+        final meta = <String>[formatInr(inv.totalAmount)];
+        if (inv.paymentMode != null && inv.paymentMode!.isNotEmpty) {
+          meta.add(inv.paymentMode!);
+        }
+        if (inv.warehouseName != null && inv.warehouseName!.isNotEmpty) {
+          meta.add(inv.warehouseName!);
+        }
+        if (inv.stockDeducted) {
+          meta.add('Stock deducted');
+        }
+
+        final actionButtons = <Widget>[
+          if (canEdit)
+            OutlinedButton.icon(
+              onPressed: () async {
+                final result = await Navigator.pushNamed(
+                  context,
+                  '/invoices/form',
+                  arguments: inv.id,
+                );
+                if (result == true) {
+                  ref.invalidate(invoiceDetailProvider(invoiceId));
+                }
+              },
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Edit'),
+            ),
+          if (canDownload)
+            OutlinedButton.icon(
+              onPressed: () => _downloadPdf(ref),
+              icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+              label: const Text('PDF'),
+            ),
+          if (canEmail)
+            OutlinedButton.icon(
+              onPressed: () =>
+                  _sendEmail(context, ref, inv.customer?.email),
+              icon: const Icon(Icons.email_outlined, size: 18),
+              label: const Text('Email'),
+            ),
+          if (canCreate && canSubmit)
+            FilledButton(
+              onPressed: () => _submit(context, ref),
+              child: const Text('Submit for approval'),
+            ),
+          if (canApprove && isPending) ...[
+            FilledButton(
+              onPressed: () => _approve(context, ref),
+              child: const Text('Approve'),
+            ),
+            OutlinedButton(
+              onPressed: () => _reject(context, ref),
+              child: const Text('Reject'),
+            ),
+          ],
+        ];
 
         return Scaffold(
-          appBar: AppAppBar(
-            title: inv.invoiceNumber,
-            actions: [
-              if (canEdit)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () async {
-                    final result = await Navigator.pushNamed(
-                      context,
-                      '/invoices/form',
-                      arguments: inv.id,
-                    );
-                    if (result == true) {
-                      ref.invalidate(invoiceDetailProvider(invoiceId));
-                    }
-                  },
-                ),
-              if (DocumentWorkflow.canDownloadInvoice(inv.status))
-                IconButton(
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  onPressed: () => _downloadPdf(ref),
-                ),
-              if (DocumentWorkflow.canEmailInvoice(inv.status))
-                IconButton(
-                  icon: const Icon(Icons.email_outlined),
-                  onPressed: () =>
-                      _sendEmail(context, ref, inv.customer?.email),
-                ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
+          backgroundColor: scheme.surfaceContainerLowest,
+          appBar: const AppAppBar(title: 'Invoice'),
+          body: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      inv.customerName,
-                      style: Theme.of(context).textTheme.titleLarge,
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  children: [
+                    DocumentDetailHeader(
+                      title: inv.invoiceNumber,
+                      subtitle: inv.customerName,
+                      status: inv.status,
+                      icon: Icons.receipt_long_outlined,
+                      meta: meta,
                     ),
-                  ),
-                  StatusBadge.forStatus(inv.status),
-                ],
-              ),
-              if (inv.quotationNumber != null)
-                Text('Quotation: ${inv.quotationNumber}'),
-              if (inv.rejectionReason != null &&
-                  inv.rejectionReason!.isNotEmpty)
-                Text(
-                  'Rejection: ${inv.rejectionReason}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-              const SizedBox(height: 8),
-              _InfoRow('Payment mode', inv.paymentMode ?? '—'),
-              _InfoRow('Motor vehicle', inv.motorVehicleNo ?? '—'),
-              _InfoRow('E-way bill', inv.ewayBillNo ?? '—'),
-              const SizedBox(height: 8),
-              ...inv.items.map(
-                (line) => Card(
-                  child: ListTile(
-                    title: Text(line.displayName),
-                    subtitle: Text(
-                      '${line.quantity} × ${formatInr(line.unitPrice)}',
+                    if (inv.rejectionReason != null &&
+                        inv.rejectionReason!.isNotEmpty)
+                      PremiumCard(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Text(
+                          'Rejection: ${inv.rejectionReason}',
+                          style: TextStyle(color: scheme.error),
+                        ),
+                      ),
+                    const PremiumSectionTitle(title: 'Details'),
+                    PremiumCard(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      child: Column(
+                        children: [
+                          if (inv.quotationNumber != null)
+                            _InfoRow('Quotation', inv.quotationNumber!),
+                          _InfoRow(
+                            'Payment mode',
+                            inv.paymentMode?.isNotEmpty == true
+                                ? inv.paymentMode!
+                                : '—',
+                          ),
+                          _InfoRow(
+                            'Motor vehicle',
+                            inv.motorVehicleNo?.isNotEmpty == true
+                                ? inv.motorVehicleNo!
+                                : '—',
+                          ),
+                          _InfoRow(
+                            'E-way bill',
+                            inv.ewayBillNo?.isNotEmpty == true
+                                ? inv.ewayBillNo!
+                                : '—',
+                          ),
+                          if (inv.warehouseName != null &&
+                              inv.warehouseName!.isNotEmpty)
+                            _InfoRow('Warehouse', inv.warehouseName!),
+                          _InfoRow(
+                            'Stock',
+                            inv.stockDeducted ? 'Deducted' : 'Not deducted',
+                          ),
+                        ],
+                      ),
                     ),
-                    trailing: Text(formatInr(line.lineTotal)),
-                  ),
+                    const PremiumSectionTitle(title: 'Items'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      child: Column(
+                        children: inv.items
+                            .map(
+                              (line) => LineItemCard(
+                                name: line.displayName,
+                                hsnSac: line.item?.hsnCode ??
+                                    line.item?.sacCode,
+                                quantity: '${line.quantity}',
+                                rate: formatInr(line.unitPrice),
+                                gstRate: '${line.gstPercent}',
+                                amount: formatInr(line.lineTotal),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                    const PremiumSectionTitle(title: 'Totals'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
+                      child: DocumentTotalsDisplay(
+                        subtotal: inv.subtotal,
+                        gstAmount: inv.gstAmount,
+                        totalAmount: inv.totalAmount,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              DocumentTotalsDisplay(
-                subtotal: inv.subtotal,
-                gstAmount: inv.gstAmount,
-                totalAmount: inv.totalAmount,
-              ),
-              const SizedBox(height: 24),
-              if (canCreate && canSubmit)
-                FilledButton(
-                  onPressed: () => _submit(context, ref),
-                  child: const Text('Submit for approval'),
-                ),
-              if (canApprove && isPending) ...[
-                FilledButton(
-                  onPressed: () => _approve(context, ref),
-                  child: const Text('Approve'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: () => _reject(context, ref),
-                  child: const Text('Reject'),
-                ),
-              ],
+              if (actionButtons.isNotEmpty)
+                StickyActionBar(children: actionButtons),
             ],
           ),
         );
@@ -430,4 +502,3 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
-

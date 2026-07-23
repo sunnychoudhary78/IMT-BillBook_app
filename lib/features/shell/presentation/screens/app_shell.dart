@@ -13,12 +13,14 @@ import 'package:solar_erp_app/features/shell/presentation/widgets/app_drawer.dar
 class _ShellTab {
   final String label;
   final IconData icon;
+  final IconData selectedIcon;
   final String permission;
   final Widget screen;
 
   const _ShellTab({
     required this.label,
     required this.icon,
+    required this.selectedIcon,
     required this.permission,
     required this.screen,
   });
@@ -39,8 +41,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     final auth = ref.watch(authProvider);
     final tabs = <_ShellTab>[
       const _ShellTab(
-        label: 'Dashboard',
+        label: 'Home',
         icon: Icons.dashboard_outlined,
+        selectedIcon: Icons.dashboard_rounded,
         permission: '',
         screen: DashboardScreen(),
       ),
@@ -55,6 +58,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       const _ShellTab(
         label: 'Customers',
         icon: Icons.people_outline,
+        selectedIcon: Icons.people_rounded,
         permission: 'customer.read',
         screen: CustomersScreen(),
       ),
@@ -62,8 +66,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     addIf(
       'quotation.read',
       const _ShellTab(
-        label: 'Quotations',
+        label: 'Quotes',
         icon: Icons.request_quote_outlined,
+        selectedIcon: Icons.request_quote_rounded,
         permission: 'quotation.read',
         screen: QuotationsScreen(),
       ),
@@ -71,8 +76,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     addIf(
       'inventory.read',
       const _ShellTab(
-        label: 'Inventory',
+        label: 'Stock',
         icon: Icons.inventory_2_outlined,
+        selectedIcon: Icons.inventory_2_rounded,
         permission: 'inventory.read',
         screen: InventoryHubScreen(),
       ),
@@ -82,6 +88,7 @@ class _AppShellState extends ConsumerState<AppShell> {
       const _ShellTab(
         label: 'Invoices',
         icon: Icons.receipt_long_outlined,
+        selectedIcon: Icons.receipt_long_rounded,
         permission: 'invoice.read',
         screen: InvoicesScreen(),
       ),
@@ -94,6 +101,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final tabs = _buildTabs();
     if (_index >= tabs.length) _index = 0;
+    final scheme = Theme.of(context).colorScheme;
 
     return ShellScope(
       scaffoldKey: _scaffoldKey,
@@ -103,7 +111,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           mainDestinations: [
             for (var i = 0; i < tabs.length; i++)
               DrawerMainDestination(
-                label: tabs[i].label,
+                label: tabs[i].label == 'Home' ? 'Dashboard' : tabs[i].label,
                 icon: tabs[i].icon,
                 index: i,
               ),
@@ -115,6 +123,19 @@ class _AppShellState extends ConsumerState<AppShell> {
           index: _index,
           children: [for (final tab in tabs) tab.screen],
         ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: (i) => setState(() => _index = i),
+          destinations: [
+            for (final tab in tabs)
+              NavigationDestination(
+                icon: Icon(tab.icon),
+                selectedIcon: Icon(tab.selectedIcon),
+                label: tab.label,
+              ),
+          ],
+        ),
+        backgroundColor: scheme.surfaceContainerLowest,
       ),
     );
   }

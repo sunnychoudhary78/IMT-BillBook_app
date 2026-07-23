@@ -70,6 +70,7 @@ class InvoiceModel {
   final String? notes;
   final String? rejectionReason;
   final String? warehouseId;
+  final String? warehouseName;
   final bool stockDeducted;
   final String? paymentMode;
   final String? motorVehicleNo;
@@ -93,6 +94,7 @@ class InvoiceModel {
     this.notes,
     this.rejectionReason,
     this.warehouseId,
+    this.warehouseName,
     this.stockDeducted = false,
     this.paymentMode,
     this.motorVehicleNo,
@@ -108,6 +110,7 @@ class InvoiceModel {
     final quotationRaw = json['quotation'];
     final itemsRaw = json['items'];
     final fromPartyRaw = json['from_party'];
+    final warehouseRaw = json['warehouse'];
 
     return InvoiceModel(
       id: asString(json['id']),
@@ -127,7 +130,11 @@ class InvoiceModel {
       totalAmount: asDouble(json['total_amount']),
       notes: json['notes']?.toString(),
       rejectionReason: json['rejection_reason']?.toString(),
-      warehouseId: json['warehouse_id']?.toString(),
+      warehouseId: json['warehouse_id']?.toString() ??
+          (warehouseRaw is Map ? warehouseRaw['id']?.toString() : null),
+      warehouseName: warehouseRaw is Map
+          ? warehouseRaw['name']?.toString()
+          : null,
       stockDeducted: asBool(json['stock_deducted']),
       paymentMode: json['payment_mode']?.toString(),
       motorVehicleNo: json['motor_vehicle_no']?.toString(),
