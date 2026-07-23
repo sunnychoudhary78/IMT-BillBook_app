@@ -82,10 +82,11 @@ class DocumentListTile extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       subtitle!,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
+                        height: 1.25,
                       ),
                     ),
                   ],

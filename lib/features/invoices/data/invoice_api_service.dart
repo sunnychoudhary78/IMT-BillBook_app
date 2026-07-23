@@ -59,6 +59,7 @@ class InvoiceApiService {
     PartyAddressModel? shipTo,
     bool shipSameAsBill = true,
     Map<String, dynamic>? fromParty,
+    List<InvoiceItemModel>? items,
   }) async {
     final resolvedShip = shipSameAsBill ? billTo : shipTo;
     final res = await _api.post(ApiEndpoints.invoiceFromQuotation, {
@@ -73,6 +74,8 @@ class InvoiceApiService {
       if (resolvedShip != null) 'shipTo': resolvedShip.toJson(),
       'shipSameAsBill': shipSameAsBill,
       if (fromParty != null && fromParty.isNotEmpty) 'fromParty': fromParty,
+      if (items != null && items.isNotEmpty)
+        'items': items.map((e) => e.toUpdateJson()).toList(),
     });
     return InvoiceModel.fromJson(Map<String, dynamic>.from(res as Map));
   }

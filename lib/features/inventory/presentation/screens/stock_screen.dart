@@ -9,6 +9,7 @@ import 'package:solar_erp_app/features/items/presentation/providers/item_provide
 import 'package:solar_erp_app/shared/utils/validators.dart';
 import 'package:solar_erp_app/shared/widgets/app_bar.dart';
 import 'package:solar_erp_app/shared/widgets/async_states.dart';
+import 'package:solar_erp_app/shared/widgets/dialogs.dart';
 
 import '../../data/models/inventory_models.dart';
 import '../providers/inventory_providers.dart';
@@ -106,7 +107,13 @@ class StockScreen extends ConsumerWidget {
                 Expanded(
                   child: warehouses.when(
                     loading: () => const LinearProgressIndicator(),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (e, _) => TextButton(
+                      onPressed: () => ref.invalidate(warehousesProvider),
+                      child: Text(
+                        'Warehouses failed — Retry',
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                    ),
                     data: (list) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
@@ -382,23 +389,38 @@ Future<void> _showMoveSheet(
   WidgetRef ref,
   _MoveType type,
 ) async {
-  final stockableItems = await ref.read(stockableItemsProvider.future);
-  final approvedItems = await ref.read(approvedItemsProvider.future);
-  final warehouses = await ref.read(warehousesProvider.future);
+  List<ItemModel> stockableItems;
+  List<ItemModel> approvedItems;
+  List<WarehouseModel> warehouses;
+  try {
+    stockableItems = await ref.read(stockableItemsProvider.future);
+    approvedItems = await ref.read(approvedItemsProvider.future);
+    warehouses = await ref.read(warehousesProvider.future);
+  } catch (e) {
+    if (!context.mounted) return;
+    ref.read(globalLoadingProvider.notifier).showApiError(e);
+    return;
+  }
   if (!context.mounted) return;
 
   final moveItems = (type == _MoveType.stockIn || type == _MoveType.adjustment)
       ? stockableItems
       : approvedItems;
 
-  if (moveItems.isEmpty || warehouses.isEmpty) {
+  if (moveItems.isEmpty) {
     ref.read(globalLoadingProvider.notifier).showError(
-          moveItems.isEmpty
-              ? (type == _MoveType.stockIn || type == _MoveType.adjustment
-                  ? 'No stockable items available'
-                  : 'No approved items available')
-              : 'No warehouses available',
+          type == _MoveType.stockIn || type == _MoveType.adjustment
+              ? 'No stockable items available'
+              : 'No approved items available',
         );
+    return;
+  }
+  if (warehouses.isEmpty) {
+    await showWarehouseUnavailableDialog(
+      context,
+      message:
+          'No active warehouses are available. Create or activate a warehouse before recording stock movements.',
+    );
     return;
   }
 

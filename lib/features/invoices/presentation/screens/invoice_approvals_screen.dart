@@ -158,12 +158,21 @@ class _InvoiceApprovalsScreenState
   }
 
   Future<void> _approve(InvoiceModel inv) async {
-    final warehouses = await ref.read(warehousesProvider.future);
+    late final List<WarehouseModel> warehouses;
+    try {
+      warehouses = await ref.read(warehousesProvider.future);
+    } catch (e) {
+      if (!mounted) return;
+      ref.read(globalLoadingProvider.notifier).showApiError(e);
+      return;
+    }
     if (!mounted) return;
     if (warehouses.isEmpty) {
-      ref
-          .read(globalLoadingProvider.notifier)
-          .showError('No warehouses available');
+      await showWarehouseUnavailableDialog(
+        context,
+        message:
+            'No active warehouses are available. Create or activate a warehouse before approving this invoice and deducting stock.',
+      );
       return;
     }
 

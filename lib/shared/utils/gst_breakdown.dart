@@ -54,8 +54,12 @@ double getLineGstAmount({
   required double gstPercent,
 }) {
   if (gstAmount != null) return gstAmount;
+  // Backend calcLine: half-rate CGST + SGST, then sum (avoids 1-paisa drift).
   final subtotal = quantity * unitPrice;
-  return ((subtotal * gstPercent / 100) * 100).roundToDouble() / 100;
+  final halfRate = gstPercent / 2;
+  final halfTax =
+      ((subtotal * halfRate / 100) * 100).roundToDouble() / 100;
+  return ((halfTax * 2) * 100).roundToDouble() / 100;
 }
 
 double getLineGstPercent({

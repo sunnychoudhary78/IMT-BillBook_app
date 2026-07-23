@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solar_erp_app/core/providers/global_loading_provider.dart';
 import 'package:solar_erp_app/core/theme/app_design.dart';
 import 'package:solar_erp_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:solar_erp_app/features/inventory/data/models/inventory_models.dart';
 import 'package:solar_erp_app/features/inventory/presentation/providers/inventory_providers.dart';
 import 'package:solar_erp_app/shared/utils/document_workflow.dart';
 import 'package:solar_erp_app/shared/utils/formatters.dart';
@@ -15,6 +16,7 @@ import 'package:solar_erp_app/shared/widgets/dialogs.dart';
 import 'package:solar_erp_app/shared/widgets/document_totals_summary.dart';
 import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
 import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
+import 'package:solar_erp_app/shared/widgets/rejection_banner.dart';
 
 import '../../data/models/invoice_model.dart';
 import '../providers/invoice_providers.dart';
@@ -76,6 +78,8 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 );
                 if (result == true) {
                   ref.invalidate(invoiceDetailProvider(invoiceId));
+                  ref.invalidate(invoiceListProvider);
+                  ref.invalidate(pendingInvoicesProvider);
                 }
               },
               icon: const Icon(Icons.edit_outlined, size: 18),
@@ -129,16 +133,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     ),
                     if (inv.rejectionReason != null &&
                         inv.rejectionReason!.isNotEmpty)
-                      PremiumCard(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
-                        ),
-                        child: Text(
-                          'Rejection: ${inv.rejectionReason}',
-                          style: TextStyle(color: scheme.error),
-                        ),
-                      ),
+                      RejectionBanner(reason: inv.rejectionReason!),
                     const PremiumSectionTitle(title: 'Details'),
                     PremiumCard(
                       margin: const EdgeInsets.symmetric(
@@ -242,12 +237,21 @@ class InvoiceDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _approve(BuildContext context, WidgetRef ref) async {
-    final warehouses = await ref.read(warehousesProvider.future);
+    late final List<WarehouseModel> warehouses;
+    try {
+      warehouses = await ref.read(warehousesProvider.future);
+    } catch (e) {
+      if (!context.mounted) return;
+      ref.read(globalLoadingProvider.notifier).showApiError(e);
+      return;
+    }
     if (!context.mounted) return;
     if (warehouses.isEmpty) {
-      ref
-          .read(globalLoadingProvider.notifier)
-          .showError('No warehouses available');
+      await showWarehouseUnavailableDialog(
+        context,
+        message:
+            'No active warehouses are available. Create or activate a warehouse before approving this invoice and deducting stock.',
+      );
       return;
     }
 

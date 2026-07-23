@@ -4,6 +4,7 @@ import 'package:solar_erp_app/features/inventory/data/inventory_api_service.dart
 import 'package:solar_erp_app/features/inventory/data/inventory_repository.dart';
 import 'package:solar_erp_app/features/invoices/data/invoice_api_service.dart';
 import 'package:solar_erp_app/features/invoices/data/invoice_repository.dart';
+import 'package:solar_erp_app/features/invoices/data/models/invoice_model.dart';
 import 'package:solar_erp_app/features/items/data/item_api_service.dart';
 import 'package:solar_erp_app/features/items/data/item_repository.dart';
 import 'package:solar_erp_app/features/quotations/data/models/quotation_model.dart';
@@ -117,6 +118,41 @@ void main() {
       expect(result.rejectionReason, 'Price too high');
     });
 
+    test('update sends quotationNumber and clears notes', () async {
+      pair.adapter.on('PUT', 'quotations/', (req) {
+        return {
+          'id': 'q1',
+          'quotation_number': 'QT-CUSTOM',
+          'customer_id': 'c1',
+          'status': 'draft',
+          'notes': '',
+          'items': [],
+        };
+      });
+
+      await repo.update(
+        id: 'q1',
+        customerId: 'c1',
+        items: [
+          const QuotationItemModel(
+            itemId: 'i1',
+            quantity: 1,
+            unitPrice: 100,
+            gstPercent: 18,
+          ),
+        ],
+        notes: '',
+        quotationNumber: 'QT-CUSTOM',
+      );
+
+      final call = pair.adapter.of('PUT', 'quotations/').single;
+      final body = call.data as Map;
+      expect(body['quotationNumber'], 'QT-CUSTOM');
+      expect(body.containsKey('quotation_number'), isFalse);
+      expect(body['notes'], '');
+      expect(body['customerId'], 'c1');
+    });
+
     test('invoiceable endpoint used for create-invoice picker', () async {
       pair.adapter.on('GET', 'invoiceable', (req) {
         return [
@@ -154,15 +190,14 @@ void main() {
 
     test('create from quotation posts quotationId', () async {
       pair.adapter.on('POST', 'from-quotation', (req) {
-        expect(req.data, {
-          'quotationId': 'q1',
-          'notes': 'N1',
-          'invoiceNumber': 'INV-CUSTOM-1',
-          'paymentMode': 'UPI',
-          'motorVehicleNo': 'MH12AB1234',
-          'ewayBillNo': 'EWB1',
-          'shipSameAsBill': true,
-        });
+        final body = Map<String, dynamic>.from(req.data as Map);
+        expect(body['quotationId'], 'q1');
+        expect(body['notes'], 'N1');
+        expect(body['invoiceNumber'], 'INV-CUSTOM-1');
+        expect(body['paymentMode'], 'UPI');
+        expect(body['motorVehicleNo'], 'MH12AB1234');
+        expect(body['ewayBillNo'], 'EWB1');
+        expect(body['shipSameAsBill'], true);
         return {
           'id': 'inv1',
           'invoice_number': 'INV-CUSTOM-1',
@@ -189,6 +224,72 @@ void main() {
       expect(inv.stockDeducted, isFalse);
       expect(inv.invoiceNumber, 'INV-CUSTOM-1');
       expect(inv.paymentMode, 'UPI');
+    });
+
+    test('create from quotation sends editable items payload', () async {
+      pair.adapter.on('POST', 'from-quotation', (req) {
+        final body = Map<String, dynamic>.from(req.data as Map);
+        expect(body['quotationId'], 'q1');
+        expect(body['items'], isA<List>());
+        final item = (body['items'] as List).first as Map;
+        expect(item['item_id'], 'i1');
+        expect(item['quantity'], 2);
+        expect(item['unit_price'], 500);
+        expect(item['gst_percent'], 18);
+        return {
+          'id': 'inv2',
+          'invoice_number': 'INV-2',
+          'quotation_id': 'q1',
+          'customer_id': 'c1',
+          'status': 'draft',
+          'stock_deducted': false,
+          'items': [],
+        };
+      });
+
+      final inv = await repo.createFromQuotation(
+        quotationId: 'q1',
+        items: [
+          const InvoiceItemModel(
+            itemId: 'i1',
+            quantity: 2,
+            unitPrice: 500,
+            gstPercent: 18,
+            description: 'Panel',
+          ),
+        ],
+      );
+      expect(inv.id, 'inv2');
+    });
+
+    test('update clears notes with empty string', () async {
+      pair.adapter.on('PUT', 'invoices/', (req) {
+        final body = Map<String, dynamic>.from(req.data as Map);
+        expect(body['notes'], '');
+        expect(body['items'], isA<List>());
+        return {
+          'id': 'inv1',
+          'invoice_number': 'INV-1',
+          'customer_id': 'c1',
+          'status': 'draft',
+          'stock_deducted': false,
+          'notes': '',
+          'items': [],
+        };
+      });
+
+      await repo.update(
+        id: 'inv1',
+        items: [
+          const InvoiceItemModel(
+            itemId: 'i1',
+            quantity: 1,
+            unitPrice: 100,
+            gstPercent: 18,
+          ),
+        ],
+        notes: '',
+      );
     });
 
     test('submit → pending_approval', () async {

@@ -110,3 +110,38 @@ Future<String?> showReasonSheet(
     },
   ).whenComplete(controller.dispose);
 }
+
+/// Blocking dialog when no active warehouses exist for approve / stock moves.
+/// Returns `true` if user chose "Open Warehouses".
+Future<bool> showWarehouseUnavailableDialog(
+  BuildContext context, {
+  String message =
+      'No active warehouses are available. Create or activate a warehouse before continuing.',
+}) async {
+  final scheme = Theme.of(context).colorScheme;
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('No warehouse available'),
+      content: Text(
+        message,
+        style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('OK'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Open Warehouses'),
+        ),
+      ],
+    ),
+  );
+  if (result == true && context.mounted) {
+    await Navigator.pushNamed(context, '/inventory/warehouses');
+  }
+  return result == true;
+}

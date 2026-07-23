@@ -53,5 +53,19 @@ void main() {
       expect(totals.totalAmount, 236);
       expect(totals.breakdown.cgstAmount, 18);
     });
+
+    test('getLineGstAmount matches backend half-rate CGST+SGST', () {
+      // Simple (qty*price*gst%)/100 rounds to 0.21; half-rate sums to 0.20.
+      final gst = getLineGstAmount(
+        quantity: 1,
+        unitPrice: 1.15,
+        gstPercent: 18,
+      );
+      expect(gst, 0.20);
+      final simple =
+          ((1.15 * 18 / 100) * 100).roundToDouble() / 100;
+      expect(simple, 0.21);
+      expect(gst, isNot(simple));
+    });
   });
 }

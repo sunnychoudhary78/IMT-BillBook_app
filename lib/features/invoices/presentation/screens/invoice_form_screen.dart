@@ -182,12 +182,13 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     ref.read(globalLoadingProvider.notifier).showLoading('Updating invoice...');
 
     try {
+      final wasRejected = _status == 'rejected';
       await ref
           .read(invoiceRepositoryProvider)
           .update(
             id: widget.invoiceId,
             items: items,
-            notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+            notes: _notes.text.trim(),
             invoiceNumber: _invoiceNumberCtrl.text.trim().isEmpty
                 ? null
                 : _invoiceNumberCtrl.text.trim(),
@@ -203,8 +204,15 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             shipSameAsBill: _shipSameAsBill,
             fromParty: _fromPartyPayload(),
           );
+      ref.invalidate(invoiceListProvider);
+      ref.invalidate(pendingInvoicesProvider);
+      ref.invalidate(invoiceDetailProvider(widget.invoiceId));
       ref.read(globalLoadingProvider.notifier).hide();
-      ref.read(globalLoadingProvider.notifier).showSuccess('Invoice updated');
+      ref.read(globalLoadingProvider.notifier).showSuccess(
+            wasRejected
+                ? 'Updated — status reset to draft'
+                : 'Invoice updated',
+          );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       ref.read(globalLoadingProvider.notifier).hide();
@@ -230,34 +238,30 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         ),
         data: (inv) {
           if (!_initialized) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted || _initialized) return;
-              final auth = ref.read(authProvider);
-              final allowed = DocumentWorkflow.canEditInvoice(
-                inv.status,
-                canCreate: auth.hasPermission('invoice.create'),
-                canApprove: auth.hasPermission('invoice.approve'),
-                stockDeducted: inv.stockDeducted,
-              );
-              if (!allowed) {
-                ref
-                    .read(globalLoadingProvider.notifier)
-                    .showError(
+            final auth = ref.read(authProvider);
+            final allowed = DocumentWorkflow.canEditInvoice(
+              inv.status,
+              canCreate: auth.hasPermission('invoice.create'),
+              canApprove: auth.hasPermission('invoice.approve'),
+              stockDeducted: inv.stockDeducted,
+            );
+            if (!allowed) {
+              _editBlocked = true;
+              _initialized = true;
+              _status = inv.status;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                ref.read(globalLoadingProvider.notifier).showError(
                       inv.status == 'pending_approval'
                           ? 'Only approvers can edit invoices pending approval'
                           : 'This invoice cannot be edited',
                     );
-                setState(() {
-                  _editBlocked = true;
-                  _initialized = true;
-                  _status = inv.status;
-                });
                 Navigator.pop(context);
-                return;
-              }
+              });
+            } else {
               _fill(inv);
-              setState(() => _initialized = true);
-            });
+              _initialized = true;
+            }
           }
           if (_editBlocked) {
             return const Scaffold(body: LoadingState());

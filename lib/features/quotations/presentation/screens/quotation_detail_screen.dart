@@ -14,6 +14,7 @@ import 'package:solar_erp_app/shared/widgets/dialogs.dart';
 import 'package:solar_erp_app/shared/widgets/document_totals_summary.dart';
 import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
 import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
+import 'package:solar_erp_app/shared/widgets/rejection_banner.dart';
 
 import '../providers/quotation_providers.dart';
 
@@ -68,6 +69,8 @@ class QuotationDetailScreen extends ConsumerWidget {
                 );
                 if (result == true) {
                   ref.invalidate(quotationDetailProvider(quotationId));
+                  ref.invalidate(quotationListProvider);
+                  ref.invalidate(pendingQuotationsProvider);
                 }
               },
               icon: const Icon(Icons.edit_outlined, size: 18),
@@ -132,18 +135,8 @@ class QuotationDetailScreen extends ConsumerWidget {
                       ],
                     ),
                     if (q.rejectionReason != null &&
-                        q.rejectionReason!.isNotEmpty) ...[
-                      PremiumCard(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
-                        ),
-                        child: Text(
-                          'Rejection: ${q.rejectionReason}',
-                          style: TextStyle(color: scheme.error),
-                        ),
-                      ),
-                    ],
+                        q.rejectionReason!.isNotEmpty)
+                      RejectionBanner(reason: q.rejectionReason!),
                     if ((q.notes != null && q.notes!.isNotEmpty) ||
                         (q.customer?.aadharNumber != null &&
                             q.customer!.aadharNumber!.isNotEmpty)) ...[
@@ -242,6 +235,7 @@ class QuotationDetailScreen extends ConsumerWidget {
       ref.read(globalLoadingProvider.notifier).showSuccess('Approved');
       ref.invalidate(quotationDetailProvider(quotationId));
       ref.invalidate(pendingQuotationsProvider);
+      ref.invalidate(quotationListProvider);
     } catch (e) {
       ref.read(globalLoadingProvider.notifier).hide();
       ref.read(globalLoadingProvider.notifier).showApiError(e);
@@ -262,6 +256,7 @@ class QuotationDetailScreen extends ConsumerWidget {
       ref.read(globalLoadingProvider.notifier).showSuccess('Rejected');
       ref.invalidate(quotationDetailProvider(quotationId));
       ref.invalidate(pendingQuotationsProvider);
+      ref.invalidate(quotationListProvider);
     } catch (e) {
       ref.read(globalLoadingProvider.notifier).hide();
       ref.read(globalLoadingProvider.notifier).showApiError(e);

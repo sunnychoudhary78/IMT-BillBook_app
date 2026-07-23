@@ -12,6 +12,7 @@ import 'package:solar_erp_app/shared/widgets/async_states.dart';
 import 'package:solar_erp_app/shared/widgets/dialogs.dart';
 import 'package:solar_erp_app/shared/widgets/premium_feature_components.dart';
 import 'package:solar_erp_app/shared/widgets/premium_ui.dart';
+import 'package:solar_erp_app/shared/widgets/rejection_banner.dart';
 
 import '../providers/item_providers.dart';
 
@@ -93,16 +94,7 @@ class ItemDetailScreen extends ConsumerWidget {
                     ),
                     if (item.rejectionReason != null &&
                         item.rejectionReason!.isNotEmpty)
-                      PremiumCard(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
-                        ),
-                        child: Text(
-                          'Rejection: ${item.rejectionReason}',
-                          style: TextStyle(color: scheme.error),
-                        ),
-                      ),
+                      RejectionBanner(reason: item.rejectionReason!),
                     const PremiumSectionTitle(title: 'Details'),
                     PremiumCard(
                       margin: const EdgeInsets.symmetric(

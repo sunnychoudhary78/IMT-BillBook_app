@@ -94,9 +94,15 @@ class QuotationsScreen extends ConsumerWidget {
                           icon: Icons.request_quote_outlined,
                         ),
                         itemBuilder: (context, q, index) {
+                          final reason = q.rejectionReason?.trim();
+                          final subtitle = q.status == 'rejected' &&
+                                  reason != null &&
+                                  reason.isNotEmpty
+                              ? '${q.customerName}\nRejected: $reason'
+                              : q.customerName;
                           return DocumentListTile(
                             title: q.quotationNumber,
-                            subtitle: q.customerName,
+                            subtitle: subtitle,
                             amount: formatInr(q.totalAmount),
                             status: q.status,
                             leadingIcon: Icons.request_quote_outlined,

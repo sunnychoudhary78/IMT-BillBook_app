@@ -33,6 +33,7 @@ class InvoiceRepository {
     PartyAddressModel? shipTo,
     bool shipSameAsBill = true,
     Map<String, dynamic>? fromParty,
+    List<InvoiceItemModel>? items,
   }) =>
       _api.createFromQuotation(
         quotationId: quotationId,
@@ -45,6 +46,7 @@ class InvoiceRepository {
         shipTo: shipTo,
         shipSameAsBill: shipSameAsBill,
         fromParty: fromParty,
+        items: items,
       );
 
   Future<InvoiceModel> createDirect({
@@ -96,7 +98,7 @@ class InvoiceRepository {
     final resolvedShip = shipSameAsBill ? billTo : shipTo;
     return _api.update(id, {
       'items': items.map((e) => e.toUpdateJson()).toList(),
-      'notes': notes,
+      'notes': notes?.trim() ?? '',
       if (invoiceNumber != null && invoiceNumber.trim().isNotEmpty)
         'invoiceNumber': invoiceNumber.trim(),
       if (paymentMode != null) 'paymentMode': paymentMode,

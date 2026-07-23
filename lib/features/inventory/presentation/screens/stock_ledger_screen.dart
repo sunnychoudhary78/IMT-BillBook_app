@@ -103,7 +103,15 @@ class _StockLedgerScreenState extends ConsumerState<StockLedgerScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (e, _) => TextButton(
+                          onPressed: () => ref.invalidate(warehousesProvider),
+                          child: Text(
+                            'Warehouses failed — Retry',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
                         data:
                             (list) => // Warehouse Picker
                             _buildStyledDropdown<String?>(

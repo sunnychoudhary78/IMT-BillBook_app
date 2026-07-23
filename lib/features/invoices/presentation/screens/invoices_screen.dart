@@ -149,9 +149,15 @@ class InvoicesScreen extends ConsumerWidget {
                           icon: Icons.receipt_long_outlined,
                         ),
                         itemBuilder: (context, inv, index) {
+                          final reason = inv.rejectionReason?.trim();
+                          final subtitle = inv.status == 'rejected' &&
+                                  reason != null &&
+                                  reason.isNotEmpty
+                              ? '${inv.customerName}\nRejected: $reason'
+                              : inv.customerName;
                           return DocumentListTile(
                             title: inv.invoiceNumber,
-                            subtitle: inv.customerName,
+                            subtitle: subtitle,
                             amount: formatInr(inv.totalAmount),
                             status: inv.status,
                             leadingIcon: Icons.receipt_long_outlined,

@@ -177,11 +177,16 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastDate = today.add(const Duration(days: 365 * 2));
+    var initial = _validUntil ?? today.add(const Duration(days: 30));
+    if (initial.isBefore(today)) initial = today;
+    if (initial.isAfter(lastDate)) initial = lastDate;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _validUntil ?? now.add(const Duration(days: 30)),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365 * 2)),
+      initialDate: initial,
+      firstDate: today,
+      lastDate: lastDate,
     );
     if (picked != null) setState(() => _validUntil = picked);
   }
@@ -240,12 +245,14 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
       final repo = ref.read(quotationRepositoryProvider);
       final fromParty = _fromPartyPayload();
       final qNum = _quotationNumber.text.trim();
+      final notes = _notes.text.trim();
+      final wasRejected = _status == 'rejected';
       if (isEdit) {
         await repo.update(
           id: widget.quotationId!,
           customerId: _customerId!,
           items: items,
-          notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+          notes: notes,
           quotationNumber: qNum.isEmpty ? null : qNum,
           validUntil: _validUntil,
           billTo: _billTo,
@@ -257,7 +264,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
         await repo.create(
           customerId: _customerId!,
           items: items,
-          notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+          notes: notes.isEmpty ? null : notes,
           quotationNumber: qNum.isEmpty ? null : qNum,
           validUntil: _validUntil,
           billTo: _billTo,
@@ -266,10 +273,19 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
           fromParty: fromParty,
         );
       }
+      ref.invalidate(quotationListProvider);
+      ref.invalidate(pendingQuotationsProvider);
+      if (isEdit) {
+        ref.invalidate(quotationDetailProvider(widget.quotationId!));
+      }
       ref.read(globalLoadingProvider.notifier).hide();
-      ref
-          .read(globalLoadingProvider.notifier)
-          .showSuccess(isEdit ? 'Quotation updated' : 'Quotation created');
+      ref.read(globalLoadingProvider.notifier).showSuccess(
+            isEdit
+                ? (wasRejected
+                    ? 'Updated — status reset to draft'
+                    : 'Quotation updated')
+                : 'Quotation created',
+          );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       ref.read(globalLoadingProvider.notifier).hide();
@@ -295,33 +311,29 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
         ),
         data: (q) {
           if (!_initialized) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted || _initialized) return;
-              final auth = ref.read(authProvider);
-              final allowed = DocumentWorkflow.canEditQuotation(
-                q.status,
-                canCreate: auth.hasPermission('quotation.create'),
-                canApprove: auth.hasPermission('quotation.approve'),
-              );
-              if (!allowed) {
-                ref
-                    .read(globalLoadingProvider.notifier)
-                    .showError(
+            final auth = ref.read(authProvider);
+            final allowed = DocumentWorkflow.canEditQuotation(
+              q.status,
+              canCreate: auth.hasPermission('quotation.create'),
+              canApprove: auth.hasPermission('quotation.approve'),
+            );
+            if (!allowed) {
+              _editBlocked = true;
+              _initialized = true;
+              _status = q.status;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                ref.read(globalLoadingProvider.notifier).showError(
                       q.status == 'pending_approval'
                           ? 'Only approvers can edit quotations pending approval'
                           : 'This quotation cannot be edited',
                     );
-                setState(() {
-                  _editBlocked = true;
-                  _initialized = true;
-                  _status = q.status;
-                });
                 Navigator.pop(context);
-                return;
-              }
+              });
+            } else {
               _fill(q);
-              setState(() => _initialized = true);
-            });
+              _initialized = true;
+            }
           }
           if (_editBlocked) {
             return const Scaffold(body: LoadingState());
@@ -337,7 +349,6 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
     final customersAsync = ref.watch(customerListProvider);
     final itemsAsync = ref.watch(approvedItemsProvider);
     final brandingAsync = ref.watch(solarBrandingProvider);
-    final pendingLock = _status == 'pending_approval';
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -408,10 +419,8 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                                 ),
                               )
                               .toList(),
-                          onChanged: pendingLock
-                              ? null
-                              : (v) =>
-                                    _onCustomerChanged(v, customersAsync.items),
+                          onChanged: (v) =>
+                              _onCustomerChanged(v, customersAsync.items),
                           validator: (v) => v == null || v.isEmpty
                               ? 'Select a customer'
                               : null,
@@ -450,7 +459,6 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                           branchId: _fromBranchId,
                           companyAddress: branding.companyAddress,
                           branches: branding.branchAddresses,
-                          readOnly: pendingLock,
                           onChanged: (v) => setState(() => _fromBranchId = v),
                         ),
                         const Divider(height: 28),
@@ -460,7 +468,6 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                           ),
                           title: 'Bill To',
                           party: _billTo,
-                          readOnly: pendingLock,
                           onChanged: (p) => setState(() {
                             _billTo = p;
                             if (_shipSameAsBill) _shipTo = p;
@@ -474,12 +481,10 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                             style: TextStyle(fontSize: 14),
                           ),
                           value: _shipSameAsBill,
-                          onChanged: pendingLock
-                              ? null
-                              : (v) => setState(() {
-                                  _shipSameAsBill = v;
-                                  if (_shipSameAsBill) _shipTo = _billTo;
-                                }),
+                          onChanged: (v) => setState(() {
+                            _shipSameAsBill = v;
+                            if (_shipSameAsBill) _shipTo = _billTo;
+                          }),
                         ),
                         if (!_shipSameAsBill) ...[
                           const SizedBox(height: 8),
@@ -489,7 +494,6 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                             ),
                             title: 'Ship To',
                             party: _shipTo,
-                            readOnly: pendingLock,
                             onChanged: (p) => setState(() => _shipTo = p),
                           ),
                         ],
@@ -532,7 +536,6 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                             vertical: 14,
                           ),
                         ),
-                        enabled: !pendingLock,
                         inputFormatters: [LengthLimitingTextInputFormatter(50)],
                         validator: (v) => AppValidators.maxLength(
                           v,
@@ -542,7 +545,7 @@ class _QuotationFormScreenState extends ConsumerState<QuotationFormScreen> {
                       ),
                       const SizedBox(height: 12),
                       InkWell(
-                        onTap: pendingLock ? null : _pickDate,
+                        onTap: _pickDate,
                         borderRadius: BorderRadius.circular(10),
                         child: InputDecorator(
                           decoration: InputDecoration(

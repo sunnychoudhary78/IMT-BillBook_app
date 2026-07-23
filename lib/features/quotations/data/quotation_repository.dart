@@ -30,6 +30,35 @@ class QuotationRepository {
 
   Future<List<QuotationModel>> pendingApprovals() => _api.pendingApprovals();
 
+  Map<String, dynamic> _payload({
+    required String customerId,
+    required List<QuotationItemModel> items,
+    String? notes,
+    String? quotationNumber,
+    DateTime? validUntil,
+    PartyAddressModel? billTo,
+    PartyAddressModel? shipTo,
+    bool shipSameAsBill = true,
+    Map<String, dynamic>? fromParty,
+    required bool clearNotesIfEmpty,
+  }) {
+    final resolvedShip = shipSameAsBill ? billTo : shipTo;
+    final trimmedNotes = notes?.trim() ?? '';
+    return {
+      'customerId': customerId,
+      'items': items.map((e) => e.toCreateJson()).toList(),
+      if (clearNotesIfEmpty || trimmedNotes.isNotEmpty) 'notes': trimmedNotes,
+      if (quotationNumber != null && quotationNumber.trim().isNotEmpty)
+        'quotationNumber': quotationNumber.trim(),
+      if (validUntil != null)
+        'validUntil': validUntil.toIso8601String().split('T').first,
+      if (billTo != null) 'billTo': billTo.toJson(),
+      if (resolvedShip != null) 'shipTo': resolvedShip.toJson(),
+      'shipSameAsBill': shipSameAsBill,
+      if (fromParty != null && fromParty.isNotEmpty) 'fromParty': fromParty,
+    };
+  }
+
   Future<QuotationModel> create({
     required String customerId,
     required List<QuotationItemModel> items,
@@ -41,20 +70,20 @@ class QuotationRepository {
     bool shipSameAsBill = true,
     Map<String, dynamic>? fromParty,
   }) {
-    final resolvedShip = shipSameAsBill ? billTo : shipTo;
-    return _api.create({
-      'customerId': customerId,
-      'items': items.map((e) => e.toCreateJson()).toList(),
-      if (notes != null) 'notes': notes,
-      if (quotationNumber != null && quotationNumber.trim().isNotEmpty)
-        'quotation_number': quotationNumber.trim(),
-      if (validUntil != null)
-        'validUntil': validUntil.toIso8601String().split('T').first,
-      if (billTo != null) 'billTo': billTo.toJson(),
-      if (resolvedShip != null) 'shipTo': resolvedShip.toJson(),
-      'shipSameAsBill': shipSameAsBill,
-      if (fromParty != null && fromParty.isNotEmpty) 'fromParty': fromParty,
-    });
+    return _api.create(
+      _payload(
+        customerId: customerId,
+        items: items,
+        notes: notes,
+        quotationNumber: quotationNumber,
+        validUntil: validUntil,
+        billTo: billTo,
+        shipTo: shipTo,
+        shipSameAsBill: shipSameAsBill,
+        fromParty: fromParty,
+        clearNotesIfEmpty: false,
+      ),
+    );
   }
 
   Future<QuotationModel> update({
@@ -69,20 +98,21 @@ class QuotationRepository {
     bool shipSameAsBill = true,
     Map<String, dynamic>? fromParty,
   }) {
-    final resolvedShip = shipSameAsBill ? billTo : shipTo;
-    return _api.update(id, {
-      'customerId': customerId,
-      'items': items.map((e) => e.toCreateJson()).toList(),
-      if (notes != null) 'notes': notes,
-      if (quotationNumber != null && quotationNumber.trim().isNotEmpty)
-        'quotation_number': quotationNumber.trim(),
-      if (validUntil != null)
-        'validUntil': validUntil.toIso8601String().split('T').first,
-      if (billTo != null) 'billTo': billTo.toJson(),
-      if (resolvedShip != null) 'shipTo': resolvedShip.toJson(),
-      'shipSameAsBill': shipSameAsBill,
-      if (fromParty != null && fromParty.isNotEmpty) 'fromParty': fromParty,
-    });
+    return _api.update(
+      id,
+      _payload(
+        customerId: customerId,
+        items: items,
+        notes: notes,
+        quotationNumber: quotationNumber,
+        validUntil: validUntil,
+        billTo: billTo,
+        shipTo: shipTo,
+        shipSameAsBill: shipSameAsBill,
+        fromParty: fromParty,
+        clearNotesIfEmpty: true,
+      ),
+    );
   }
 
   Future<QuotationModel> submit(String id) => _api.submit(id);

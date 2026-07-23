@@ -7,6 +7,8 @@ class EmptyState extends StatelessWidget {
   final String? subtitle;
   final IconData icon;
   final Widget? action;
+  final Color? iconColor;
+  final Color? iconBackground;
 
   const EmptyState({
     super.key,
@@ -14,53 +16,56 @@ class EmptyState extends StatelessWidget {
     this.subtitle,
     this.icon = Icons.inbox_outlined,
     this.action,
+    this.iconColor,
+    this.iconBackground,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final fg = iconColor ?? scheme.primary;
+    final bg = iconBackground ?? scheme.primary.withValues(alpha: .10);
 
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: .10),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 30, color: scheme.primary),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: bg,
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 14),
+              child: Icon(icon, size: 30, color: fg),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            if (subtitle != null && subtitle!.isNotEmpty) ...[
+              const SizedBox(height: 6),
               Text(
-                title,
+                subtitle!,
                 textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                style: TextStyle(color: scheme.onSurfaceVariant, height: 1.35),
               ),
-              if (subtitle != null && subtitle!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  subtitle!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: scheme.onSurfaceVariant, height: 1.35),
-                ),
-              ],
-              if (action != null) ...[
-                const SizedBox(height: 16),
-                action!,
-              ],
             ],
-          ),
+            if (action != null) ...[
+              const SizedBox(height: 16),
+              action!,
+            ],
+          ],
         ),
-      );
-  
+      ),
+    );
   }
 }
 
@@ -72,13 +77,20 @@ class ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return EmptyState(
       title: 'Something went wrong',
       subtitle: message,
       icon: Icons.error_outline,
+      iconColor: scheme.error,
+      iconBackground: scheme.error.withValues(alpha: 0.12),
       action: onRetry == null
           ? null
           : FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: scheme.error,
+                foregroundColor: scheme.onError,
+              ),
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
