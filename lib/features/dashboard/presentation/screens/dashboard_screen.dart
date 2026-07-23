@@ -74,26 +74,37 @@ class DashboardScreen extends ConsumerWidget {
                           value: formatInr(data.totalSales),
                           icon: Icons.currency_rupee,
                           color: scheme.primary,
+                          onTap: () => Navigator.pushNamed(context, '/reports_screen'),
                         ).appFadeSlide(index: 1),
+
                         _KpiCard(
                           label: 'Customers',
                           value: '${data.customersCount}',
                           icon: Icons.people_outline,
                           color: scheme.secondary,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/customers'),
                         ).appFadeSlide(index: 2),
+
                         _KpiCard(
                           label: 'Quotations',
                           value: '${data.quotationsCount}',
                           icon: Icons.request_quote_outlined,
                           color: scheme.tertiary,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/quotations'),
                         ).appFadeSlide(index: 3),
+
                         _KpiCard(
                           label: 'Invoices',
                           value: '${data.invoicesCount}',
                           icon: Icons.receipt_long_outlined,
                           color: scheme.primaryContainer,
                           iconColor: scheme.onPrimaryContainer,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/invoices'),
                         ).appFadeSlide(index: 4),
+
                         _KpiCard(
                           label: 'Pending approvals',
                           value:
@@ -101,19 +112,28 @@ class DashboardScreen extends ConsumerWidget {
                           icon: Icons.pending_actions,
                           color: scheme.tertiaryContainer,
                           iconColor: scheme.onTertiaryContainer,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/quotations/approvals',
+                          ),
                         ).appFadeSlide(index: 5),
+
                         _KpiCard(
                           label: 'Low stock',
                           value: '${data.lowStockCount}',
                           icon: Icons.warning_amber_outlined,
                           color: scheme.error,
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/inventory/low-stock'),
                         ).appFadeSlide(index: 6),
                       ],
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                    ),
                     child: const PremiumSectionTitle(title: 'Sales trend'),
                   ).appFadeSlide(index: 7),
                   const SizedBox(height: AppSpacing.sm + 4),
@@ -132,8 +152,9 @@ class DashboardScreen extends ConsumerWidget {
                                     Icon(
                                       Icons.show_chart,
                                       size: 36,
-                                      color: scheme.primary
-                                          .withValues(alpha: 0.7),
+                                      color: scheme.primary.withValues(
+                                        alpha: 0.7,
+                                      ),
                                     ),
                                     const SizedBox(height: AppSpacing.sm),
                                     Text(
@@ -163,7 +184,9 @@ class DashboardScreen extends ConsumerWidget {
                 ],
                 const SizedBox(height: AppSpacing.lg),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
                   child: const PremiumSectionTitle(title: 'Quick actions'),
                 ).appFadeSlide(index: 8),
                 const SizedBox(height: AppSpacing.sm + 4),
@@ -207,8 +230,7 @@ class DashboardScreen extends ConsumerWidget {
                         _QuickAction(
                           label: 'Reports',
                           icon: Icons.analytics_outlined,
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/reports'),
+                          onTap: () => Navigator.pushNamed(context, '/reports'),
                         ).appFadeSlide(index: 5),
                       if (auth.hasPermission('item.create'))
                         _QuickAction(
@@ -259,7 +281,9 @@ class DashboardScreen extends ConsumerWidget {
                     child: PremiumSectionTitle(title: 'Low stock alerts'),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  ...data.lowStock.take(5).map(
+                  ...data.lowStock
+                      .take(5)
+                      .map(
                         (s) => Padding(
                           padding: const EdgeInsets.fromLTRB(
                             AppSpacing.md,
@@ -313,6 +337,7 @@ class _KpiCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final Color? iconColor;
+  final VoidCallback? onTap; // 1. Yaha onTap add kiya
 
   const _KpiCard({
     required this.label,
@@ -320,6 +345,7 @@ class _KpiCard extends StatelessWidget {
     required this.icon,
     required this.color,
     this.iconColor,
+    this.onTap, // 2. Constructor me add kiya
   });
 
   @override
@@ -329,38 +355,47 @@ class _KpiCard extends StatelessWidget {
 
     return SizedBox(
       width: width.clamp(140, 220),
-      child: PremiumCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: iconColor != null ? 1 : 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Icon(icon, color: accent, size: 20),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: PremiumCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color.withValues(
+                      alpha: iconColor != null ? 1 : 0.12,
+                    ),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Icon(icon, color: accent, size: 20),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                letterSpacing: -0.2,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -452,10 +487,12 @@ class _SalesChart extends StatelessWidget {
           ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            topTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,

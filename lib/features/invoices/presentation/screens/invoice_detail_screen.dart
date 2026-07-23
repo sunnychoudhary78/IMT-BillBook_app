@@ -214,7 +214,10 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 ),
               ),
               if (actionButtons.isNotEmpty)
-                StickyActionBar(children: actionButtons),
+                SafeArea(
+                  top: false,
+                  child: StickyActionBar(children: actionButtons),
+                ),
             ],
           ),
         );
@@ -354,7 +357,6 @@ class InvoiceDetailScreen extends ConsumerWidget {
 
     if (confirmed != true || warehouseId == null) return;
 
-    // Run stock check if user didn't change dropdown
     if (stockCheck == null) {
       try {
         stockCheck = await ref
