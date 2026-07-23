@@ -56,17 +56,6 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: scheme.onSurfaceVariant.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
               Padding(
                 padding: const EdgeInsets.only(left: 8.0, bottom: 12.0),
                 child: Text(
