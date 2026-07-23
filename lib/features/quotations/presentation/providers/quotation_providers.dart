@@ -111,16 +111,16 @@ final quotationListProvider =
 );
 
 final quotationDetailProvider =
-    FutureProvider.family<QuotationModel, String>((ref, id) async {
+    FutureProvider.autoDispose.family<QuotationModel, String>((ref, id) async {
   return ref.watch(quotationRepositoryProvider).getById(id);
 });
 
 final pendingQuotationsProvider =
-    FutureProvider<List<QuotationModel>>((ref) async {
+    FutureProvider.autoDispose<List<QuotationModel>>((ref) async {
   return ref.watch(quotationRepositoryProvider).pendingApprovals();
 });
 
 final invoiceableQuotationsProvider =
-    FutureProvider<List<QuotationModel>>((ref) async {
+    FutureProvider.autoDispose<List<QuotationModel>>((ref) async {
   return ref.watch(quotationRepositoryProvider).listInvoiceable();
 });

@@ -35,6 +35,12 @@ class QuotationsScreen extends ConsumerWidget {
       appBar: AppAppBar(
         title: 'Quotations',
         actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: () =>
+                ref.read(quotationListProvider.notifier).refresh(),
+            icon: const Icon(Icons.refresh_rounded),
+          ),
           if (canApprove)
             IconButton(
               tooltip: 'Approvals',
@@ -106,11 +112,17 @@ class QuotationsScreen extends ConsumerWidget {
                             amount: formatInr(q.totalAmount),
                             status: q.status,
                             leadingIcon: Icons.request_quote_outlined,
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              '/quotations/detail',
-                              arguments: q.id,
-                            ),
+                            onTap: () async {
+                              await Navigator.pushNamed(
+                                context,
+                                '/quotations/detail',
+                                arguments: q.id,
+                              );
+                              if (!context.mounted) return;
+                              ref
+                                  .read(quotationListProvider.notifier)
+                                  .refresh();
+                            },
                           ).appFadeSlide(index: index);
                         },
                       ),

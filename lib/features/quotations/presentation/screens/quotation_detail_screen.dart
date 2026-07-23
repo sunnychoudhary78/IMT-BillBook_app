@@ -121,73 +121,80 @@ class QuotationDetailScreen extends ConsumerWidget {
           body: Column(
             children: [
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  children: [
-                    DocumentDetailHeader(
-                      title: q.quotationNumber,
-                      subtitle: q.customerName,
-                      status: q.status,
-                      icon: Icons.request_quote_outlined,
-                      meta: [
-                        'Valid until ${formatDate(q.validUntil)}',
-                        formatInr(q.totalAmount),
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(quotationDetailProvider(quotationId));
+                    await ref.read(quotationDetailProvider(quotationId).future);
+                  },
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    children: [
+                      DocumentDetailHeader(
+                        title: q.quotationNumber,
+                        subtitle: q.customerName,
+                        status: q.status,
+                        icon: Icons.request_quote_outlined,
+                        meta: [
+                          'Valid until ${formatDate(q.validUntil)}',
+                          formatInr(q.totalAmount),
+                        ],
+                      ),
+                      if (q.rejectionReason != null &&
+                          q.rejectionReason!.isNotEmpty)
+                        RejectionBanner(reason: q.rejectionReason!),
+                      if ((q.notes != null && q.notes!.isNotEmpty) ||
+                          (q.customer?.aadharNumber != null &&
+                              q.customer!.aadharNumber!.isNotEmpty)) ...[
+                        const PremiumSectionTitle(title: 'Details'),
+                        PremiumCard(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (q.notes != null && q.notes!.isNotEmpty)
+                                Text('Notes: ${q.notes}'),
+                              if (q.customer?.aadharNumber != null &&
+                                  q.customer!.aadharNumber!.isNotEmpty)
+                                Text('Aadhar: ${q.customer!.aadharNumber}'),
+                            ],
+                          ),
+                        ),
                       ],
-                    ),
-                    if (q.rejectionReason != null &&
-                        q.rejectionReason!.isNotEmpty)
-                      RejectionBanner(reason: q.rejectionReason!),
-                    if ((q.notes != null && q.notes!.isNotEmpty) ||
-                        (q.customer?.aadharNumber != null &&
-                            q.customer!.aadharNumber!.isNotEmpty)) ...[
-                      const PremiumSectionTitle(title: 'Details'),
-                      PremiumCard(
-                        margin: const EdgeInsets.symmetric(
+                      const PremiumSectionTitle(title: 'Items'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.md,
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (q.notes != null && q.notes!.isNotEmpty)
-                              Text('Notes: ${q.notes}'),
-                            if (q.customer?.aadharNumber != null &&
-                                q.customer!.aadharNumber!.isNotEmpty)
-                              Text('Aadhar: ${q.customer!.aadharNumber}'),
-                          ],
+                          children: q.items
+                              .map(
+                                (line) => LineItemCard(
+                                  name: line.displayName,
+                                  quantity: '${line.quantity}',
+                                  rate: formatInr(line.unitPrice),
+                                  gstRate: '${line.gstPercent}',
+                                  amount: formatInr(line.lineTotal),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      const PremiumSectionTitle(title: 'Totals'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: DocumentTotalsDisplay(
+                          subtotal: q.subtotal,
+                          gstAmount: q.gstAmount,
+                          totalAmount: q.totalAmount,
                         ),
                       ),
                     ],
-                    const PremiumSectionTitle(title: 'Items'),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                      ),
-                      child: Column(
-                        children: q.items
-                            .map(
-                              (line) => LineItemCard(
-                                name: line.displayName,
-                                quantity: '${line.quantity}',
-                                rate: formatInr(line.unitPrice),
-                                gstRate: '${line.gstPercent}',
-                                amount: formatInr(line.lineTotal),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                    const PremiumSectionTitle(title: 'Totals'),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                      ),
-                      child: DocumentTotalsDisplay(
-                        subtotal: q.subtotal,
-                        gstAmount: q.gstAmount,
-                        totalAmount: q.totalAmount,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               if (actionButtons.isNotEmpty)

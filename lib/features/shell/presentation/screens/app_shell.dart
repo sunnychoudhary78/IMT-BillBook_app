@@ -5,7 +5,9 @@ import 'package:solar_erp_app/features/auth/presentation/providers/auth_provider
 import 'package:solar_erp_app/features/customers/presentation/screens/customers_screen.dart';
 import 'package:solar_erp_app/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:solar_erp_app/features/inventory/presentation/screens/inventory_hub_screen.dart';
+import 'package:solar_erp_app/features/invoices/presentation/providers/invoice_providers.dart';
 import 'package:solar_erp_app/features/invoices/presentation/screens/invoices_screen.dart';
+import 'package:solar_erp_app/features/quotations/presentation/providers/quotation_providers.dart';
 import 'package:solar_erp_app/features/quotations/presentation/screens/quotations_screen.dart';
 import 'package:solar_erp_app/features/shell/presentation/shell_scope.dart';
 import 'package:solar_erp_app/features/shell/presentation/widgets/app_drawer.dart';
@@ -97,6 +99,17 @@ class _AppShellState extends ConsumerState<AppShell> {
     return tabs;
   }
 
+  void _selectTab(int index, List<_ShellTab> tabs) {
+    if (index == _index || index < 0 || index >= tabs.length) return;
+    setState(() => _index = index);
+    final label = tabs[index].label;
+    if (label == 'Quotes') {
+      ref.read(quotationListProvider.notifier).refresh();
+    } else if (label == 'Invoices') {
+      ref.read(invoiceListProvider.notifier).refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabs = _buildTabs();
@@ -117,7 +130,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               ),
           ],
           selectedMainIndex: _index,
-          onSelectMain: (i) => setState(() => _index = i),
+          onSelectMain: (i) => _selectTab(i, tabs),
         ),
         body: IndexedStack(
           index: _index,
@@ -125,7 +138,7 @@ class _AppShellState extends ConsumerState<AppShell> {
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _index,
-          onDestinationSelected: (i) => setState(() => _index = i),
+          onDestinationSelected: (i) => _selectTab(i, tabs),
           destinations: [
             for (final tab in tabs)
               NavigationDestination(

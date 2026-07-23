@@ -111,10 +111,11 @@ final invoiceListProvider =
 );
 
 final invoiceDetailProvider =
-    FutureProvider.family<InvoiceModel, String>((ref, id) async {
+    FutureProvider.autoDispose.family<InvoiceModel, String>((ref, id) async {
   return ref.watch(invoiceRepositoryProvider).getById(id);
 });
 
-final pendingInvoicesProvider = FutureProvider<List<InvoiceModel>>((ref) async {
+final pendingInvoicesProvider =
+    FutureProvider.autoDispose<List<InvoiceModel>>((ref) async {
   return ref.watch(invoiceRepositoryProvider).pendingApprovals();
 });

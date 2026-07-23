@@ -99,6 +99,12 @@ class InvoicesScreen extends ConsumerWidget {
       appBar: AppAppBar(
         title: 'Invoices',
         actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: () =>
+                ref.read(invoiceListProvider.notifier).refresh(),
+            icon: const Icon(Icons.refresh_rounded),
+          ),
           if (canApprove)
             IconButton(
               tooltip: 'Approvals',
@@ -161,11 +167,15 @@ class InvoicesScreen extends ConsumerWidget {
                             amount: formatInr(inv.totalAmount),
                             status: inv.status,
                             leadingIcon: Icons.receipt_long_outlined,
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              '/invoices/detail',
-                              arguments: inv.id,
-                            ),
+                            onTap: () async {
+                              await Navigator.pushNamed(
+                                context,
+                                '/invoices/detail',
+                                arguments: inv.id,
+                              );
+                              if (!context.mounted) return;
+                              ref.read(invoiceListProvider.notifier).refresh();
+                            },
                           ).appFadeSlide(index: index);
                         },
                       ),

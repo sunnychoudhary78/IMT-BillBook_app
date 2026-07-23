@@ -121,89 +121,96 @@ class InvoiceDetailScreen extends ConsumerWidget {
           body: Column(
             children: [
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  children: [
-                    DocumentDetailHeader(
-                      title: inv.invoiceNumber,
-                      subtitle: inv.customerName,
-                      status: inv.status,
-                      icon: Icons.receipt_long_outlined,
-                      meta: meta,
-                    ),
-                    if (inv.rejectionReason != null &&
-                        inv.rejectionReason!.isNotEmpty)
-                      RejectionBanner(reason: inv.rejectionReason!),
-                    const PremiumSectionTitle(title: 'Details'),
-                    PremiumCard(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(invoiceDetailProvider(invoiceId));
+                    await ref.read(invoiceDetailProvider(invoiceId).future);
+                  },
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    children: [
+                      DocumentDetailHeader(
+                        title: inv.invoiceNumber,
+                        subtitle: inv.customerName,
+                        status: inv.status,
+                        icon: Icons.receipt_long_outlined,
+                        meta: meta,
                       ),
-                      child: Column(
-                        children: [
-                          if (inv.quotationNumber != null)
-                            _InfoRow('Quotation', inv.quotationNumber!),
-                          _InfoRow(
-                            'Payment mode',
-                            inv.paymentMode?.isNotEmpty == true
-                                ? inv.paymentMode!
-                                : '—',
-                          ),
-                          _InfoRow(
-                            'Motor vehicle',
-                            inv.motorVehicleNo?.isNotEmpty == true
-                                ? inv.motorVehicleNo!
-                                : '—',
-                          ),
-                          _InfoRow(
-                            'E-way bill',
-                            inv.ewayBillNo?.isNotEmpty == true
-                                ? inv.ewayBillNo!
-                                : '—',
-                          ),
-                          if (inv.warehouseName != null &&
-                              inv.warehouseName!.isNotEmpty)
-                            _InfoRow('Warehouse', inv.warehouseName!),
-                          _InfoRow(
-                            'Stock',
-                            inv.stockDeducted ? 'Deducted' : 'Not deducted',
-                          ),
-                        ],
+                      if (inv.rejectionReason != null &&
+                          inv.rejectionReason!.isNotEmpty)
+                        RejectionBanner(reason: inv.rejectionReason!),
+                      const PremiumSectionTitle(title: 'Details'),
+                      PremiumCard(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: Column(
+                          children: [
+                            if (inv.quotationNumber != null)
+                              _InfoRow('Quotation', inv.quotationNumber!),
+                            _InfoRow(
+                              'Payment mode',
+                              inv.paymentMode?.isNotEmpty == true
+                                  ? inv.paymentMode!
+                                  : '—',
+                            ),
+                            _InfoRow(
+                              'Motor vehicle',
+                              inv.motorVehicleNo?.isNotEmpty == true
+                                  ? inv.motorVehicleNo!
+                                  : '—',
+                            ),
+                            _InfoRow(
+                              'E-way bill',
+                              inv.ewayBillNo?.isNotEmpty == true
+                                  ? inv.ewayBillNo!
+                                  : '—',
+                            ),
+                            if (inv.warehouseName != null &&
+                                inv.warehouseName!.isNotEmpty)
+                              _InfoRow('Warehouse', inv.warehouseName!),
+                            _InfoRow(
+                              'Stock',
+                              inv.stockDeducted ? 'Deducted' : 'Not deducted',
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const PremiumSectionTitle(title: 'Items'),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
+                      const PremiumSectionTitle(title: 'Items'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: Column(
+                          children: inv.items
+                              .map(
+                                (line) => LineItemCard(
+                                  name: line.displayName,
+                                  hsnSac: line.item?.hsnCode ??
+                                      line.item?.sacCode,
+                                  quantity: '${line.quantity}',
+                                  rate: formatInr(line.unitPrice),
+                                  gstRate: '${line.gstPercent}',
+                                  amount: formatInr(line.lineTotal),
+                                ),
+                              )
+                              .toList(),
+                        ),
                       ),
-                      child: Column(
-                        children: inv.items
-                            .map(
-                              (line) => LineItemCard(
-                                name: line.displayName,
-                                hsnSac: line.item?.hsnCode ??
-                                    line.item?.sacCode,
-                                quantity: '${line.quantity}',
-                                rate: formatInr(line.unitPrice),
-                                gstRate: '${line.gstPercent}',
-                                amount: formatInr(line.lineTotal),
-                              ),
-                            )
-                            .toList(),
+                      const PremiumSectionTitle(title: 'Totals'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: DocumentTotalsDisplay(
+                          subtotal: inv.subtotal,
+                          gstAmount: inv.gstAmount,
+                          totalAmount: inv.totalAmount,
+                        ),
                       ),
-                    ),
-                    const PremiumSectionTitle(title: 'Totals'),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                      ),
-                      child: DocumentTotalsDisplay(
-                        subtotal: inv.subtotal,
-                        gstAmount: inv.gstAmount,
-                        totalAmount: inv.totalAmount,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               if (actionButtons.isNotEmpty)
