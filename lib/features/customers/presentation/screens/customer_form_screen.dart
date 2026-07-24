@@ -100,6 +100,10 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
       } else {
         await repo.create(model);
       }
+      ref.read(customerListProvider.notifier).refresh();
+      if (isEdit) {
+        ref.invalidate(customerDetailProvider(widget.customerId!));
+      }
       ref.read(globalLoadingProvider.notifier).hide();
       ref.read(globalLoadingProvider.notifier).showSuccess(
             isEdit ? 'Customer updated' : 'Customer created',
